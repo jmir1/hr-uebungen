@@ -1,6 +1,6 @@
 # Downloads the new exercises when given a link and an exercise number
 
-name: 'Download Exercises'
+name: 'Download exercises'
 
 on:
   workflow_dispatch:

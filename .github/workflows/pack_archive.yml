@@ -1,0 +1,29 @@
+# Packs an archive of the given exercise number
+
+name: 'Pack exercise'
+
+on:
+  workflow_dispatch:
+    inputs:
+      blatt_nr:
+        description: 'Nummer des Übungsblatts'
+        required: true
+
+jobs:
+  pack:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Pack the subfolder into an archive
+        run: |
+          tar -czvf archiv.tar.gz blatt-${{ github.event.inputs.blatt_nr }}
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: blatt-${{ github.event.inputs.blatt_nr }}
+          name: HR Übung Blatt ${{ github.event.inputs.blatt_nr }}
+          body: HR Übung Blatt ${{ github.event.inputs.blatt_nr }}
+          files: |
+            archiv.tar.gz
+          draft: false
+          prerelease: false
