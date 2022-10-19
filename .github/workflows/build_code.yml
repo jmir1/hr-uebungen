@@ -1,0 +1,18 @@
+# Builds all code for all exercises
+
+name: 'Build code'
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'blatt-**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build all code for all exercises
+        run: find blatt-* -type d -execdir bash -c "cd '{}' && [ -f Makefile ] && make && make clean" \;
