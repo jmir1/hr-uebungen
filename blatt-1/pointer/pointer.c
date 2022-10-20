@@ -39,7 +39,7 @@ void change_pointer(int **zeiger_zeiger)
 void change_second_value(int *array_zeiger)
 {
   // Ändern Sie den Zeiger so, dass er auf das zweite Element des Arrays zeigt.
-  array_zeiger = &*array_zeiger + 1;
+  array_zeiger = array_zeiger + 1;
   // Ändern Sie den Wert des zweiten Elements
   *array_zeiger = 200;
 }
