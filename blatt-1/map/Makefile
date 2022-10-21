@@ -1,6 +1,6 @@
 all: heatmap
 	
-CFLAGS = -std=c11 -pedantic -Wall -Wextra -O3 -ggdb
+CFLAGS = -std=c11 -pedantic -Wall -Wextra -Werror -O3 -ggdb
 
 heatmap: heatmap.o
 	gcc $(CFLAGS) -o heatmap heatmap.o

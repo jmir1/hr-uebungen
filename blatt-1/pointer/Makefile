@@ -1,6 +1,6 @@
 all: pointer
 	
-CFLAGS = -std=c11 -pedantic -Wall -Wextra -O3 -ggdb
+CFLAGS = -std=c11 -pedantic -Wall -Wextra -Werror -O3 -ggdb
 
 pointer: pointer.o
 	gcc $(CFLAGS) -o pointer pointer.o
