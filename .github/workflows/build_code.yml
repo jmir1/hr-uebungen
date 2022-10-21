@@ -7,7 +7,7 @@ on:
     branches:
       - main
     paths:
-      - 'blatt-**'
+      - 'blatt**'
 
 jobs:
   build:
@@ -15,4 +15,4 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Build all code for all exercises
-        run: find blatt-* -type d -execdir bash -c "cd '{}' && [ -f Makefile ] && make && make clean" \;
+        run: find blatt* -type d -execdir bash -c "cd '{}' && [ -f Makefile ] && make && make clean" \;
