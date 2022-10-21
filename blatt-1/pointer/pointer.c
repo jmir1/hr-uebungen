@@ -5,10 +5,10 @@ int globaler_wert = 0;
 // Löschen Sie diese Variable nach der Bearbeitung aller Funktionen.
 
 void print_pointer(int *zeiger) {
-    printf("Der Zeiger hat den Wert bzw. zeigt auf die Adresse: %p\n", (void *)&zeiger);
+    printf("Der Zeiger hat den Wert bzw. zeigt auf die Adresse: %p\n", (void *)zeiger);
     // Hinweis: Der Compiler wird auch bei einer richtigen Antwort eine Warnung
-    // ausgeben. Fügen Sie den Type-Cast "(void *)" vor Ihrer Antwort ein, um
-    // diese zu entfernen.
+    // ausgeben. Fügen Sie den Type-Cast "(void *)" vor Ihrer Antwort ein, um diese zu
+    // entfernen.
 }
 
 void print_value(int *zeiger) {
@@ -35,8 +35,7 @@ void change_pointer(int **zeiger_zeiger) {
 // void change_second_value(int array_zeiger[])
 // Dies ist immer identisch mit diesem Funktionskopf:
 void change_second_value(int *array_zeiger) {
-    // Ändern Sie den Zeiger so, dass er auf das zweite Element des Arrays
-    // zeigt.
+    // Ändern Sie den Zeiger so, dass er auf das zweite Element des Arrays zeigt.
     array_zeiger = array_zeiger + 1;
     // Ändern Sie den Wert des zweiten Elements
     *array_zeiger = 200;
@@ -46,9 +45,8 @@ void operator_precedence() {
     int array[4] = {1, 10, 100, 1000};
     int *zeiger_array[2] = {&array[2], &array[0]};
 
-    // Entfernen Sie alle unnötigen und falschen Klammern, und fügen Sie
-    // fehlende Klammern hinzu. Betrachten Sie hierfür den Begriff "Operator
-    // Precedence".
+    // Entfernen Sie alle unnötigen und falschen Klammern, und fügen Sie fehlende
+    // Klammern hinzu. Betrachten Sie hierfür den Begriff "Operator Precedence".
     printf("Das erste Array-Element plus 1: %d.\n", *zeiger_array[1] + 1);
     printf("Das zweite Array-Element: %d.\n", *(zeiger_array[1] + 1));
     printf("Das vierte Array-Element plus 1: %d.\n", (*zeiger_array)[1] + 1);
