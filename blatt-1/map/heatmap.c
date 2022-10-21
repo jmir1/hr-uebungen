@@ -20,8 +20,8 @@ void set_temperature (int x, int y, double temperature) {
 // Die Funktion show_map soll das Array in Form einer 3x3-Matrix ausgeben
 void show_map (void) {
   
-  // Wir nutzen hier die in der Computergrafik übliche Ausrichtung des Koordinatensystems
-  // (x-Achse nach rechts, y-Achse nach unten)
+  	// Wir nutzen hier die in der Computergrafik übliche Ausrichtung des Koordinatensystems
+  	// (x-Achse nach rechts, y-Achse nach unten)
 	for (int y = 0; y < 3; y++) {
 		for (int x = 0; x < 3; x++) {
 			printf("%.2f\t", map[x][y]);
@@ -52,14 +52,14 @@ double get_value(int x, int y) {
 void set_to_average (int x, int y) {
 	double sum = 0.0;
 
-  // Alle existierenden Werte der Nachbarschaft werden auf sum addiert
+  	// Alle existierenden Werte der Nachbarschaft werden auf sum addiert
 	for (int b = y - 1; b <= y + 1; b++) {
 		for (int a = x - 1; a <= x + 1; a++) {
 			sum += get_value(a, b);
 		}
 	}
 
-  // Der Wert an der übergebenen Koordinate wird wieder abgezogen
+  	// Der Wert an der übergebenen Koordinate wird wieder abgezogen
 	sum -= map[x][y]; 
 	set_temperature (x, y, sum / 8);
 }
