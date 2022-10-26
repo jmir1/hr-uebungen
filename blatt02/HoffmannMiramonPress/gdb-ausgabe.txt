@@ -1,0 +1,55 @@
+(gdb) break 10
+Breakpoint 1 at 0x40114a: file simple.c, line 12.
+(gdb) run
+Starting program: /home/miramon/hr-uebungen/blatt02/HoffmannMiramonPress/simple/simple 
+
+Breakpoint 1, mistake1 () at simple.c:12
+12        int buf[] = { 1, 1, 2, 3, 4, 5 };
+(gdb) print buf
+$1 = {194, 0, -33049, 32767, -33050, 32767}
+(gdb) print buf[2]
+$2 = -33049
+(gdb) next
+13        return buf;
+(gdb) print buf
+$3 = {1, 1, 2, 3, 4, 5}
+(gdb) print buf[2]
+$4 = 2
+(gdb) break 17
+Breakpoint 2 at 0x401183: file simple.c, line 19.
+(gdb) c
+Continuing.
+
+Breakpoint 2, mistake2 () at simple.c:19
+19        int *buf = malloc (sizeof (char) * 4);
+(gdb) print buf
+$5 = (int *) 0x4012fd <__libc_csu_init+77>
+(gdb) c
+Continuing.
+
+Program received signal SIGSEGV, Segmentation fault.
+0x00000000004011bc in mistake3 () at simple.c:30
+30        buf[0] = 3;
+(gdb) list
+25      mistake3 (void)
+26      {
+27        /* In dieser Funktion darf kein Speicher direkt allokiert werden. */
+28        int mistake2_ = 0;
+29        int *buf = (int *) &mistake2;
+30        buf[0] = 3;
+31        return buf;
+32      }
+33
+34      int *
+(gdb) bt
+#0  0x00000000004011bc in mistake3 () at simple.c:30
+#1  0x0000000000401225 in main () at simple.c:47
+(gdb) frame 1
+#1  0x0000000000401225 in main () at simple.c:47
+47        int *p[4] = { &mistake1 ()[1], &mistake2 ()[1], mistake3 (), mistake4 () };
+(gdb) info locals
+p = {0x4, 0x4052a4, 0x7fffffff7ff0, 0x0}
+(gdb) print p
+$6 = {0x4, 0x4052a4, 0x7fffffff7ff0, 0x0}
+(gdb) call mistake4()
+$9 = (int *) 0x4052c0

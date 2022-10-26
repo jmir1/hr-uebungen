@@ -1,0 +1,16 @@
+Zeile 12:    mistake1() returnt einen Pointer auf eine lokale Variable, der kein Speicher 
+             allokiert wurde. Deswegen wird der Speicher an der Adresse von buf wieder
+             freigegeben, nachdem die Funktion mistake1 durchgelaufen ist.
+             Um das zu vermeiden, benutzen wir malloc().
+Zeile 19-20: In mistake2() wird buf Platz für 4 chars zugewiesen, statt für 2 ints.
+             Ausserdem wollen wir in main() den Wert an dem Index 1 haben, das
+             wurde also auch korrigiert.
+Zeile 28-29: In mistake3() ist mistake2_ eine lokale Variable, der wir auch mit
+             malloc() Speicher zuweisen müssen. buf ist dann ein Array, der an der
+             Adresse mistake2_ anfängt.
+Zeile 37-38: In mistake4() wird nur Platz für 4 chars allokiert. Für einen Write an dem
+             Index 4 braucht man generell Platz für 5 ints. Allerdings soll die 4 laut
+             main() am Index 0 stehen.
+Zeile 56:    Der Pointer, der eigentlich gefreed werden soll, fängt noch vor p[1] an,
+             deswegen wird free(&p[1][-1]) aufgerufen. Das gleiche gilt für p[0], aber
+             p[2] und p[3] können normal gefreed werden.
