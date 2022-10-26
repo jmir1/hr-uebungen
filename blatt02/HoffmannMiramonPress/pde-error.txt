@@ -1,0 +1,8 @@
+Datei: askparams.c Zeile 199:    Hier wurde statt 5 555 geschrieben, und da das Programm
+                                 nicht mit so vielen Argumenten aufgerufen wird, führt das
+                                 zu einem Fehler.
+Datei: partdiff-seq.c Zeile 96:  Hier wurde nur Platz für N-1 Zeilen allokiert (statt N+1).
+                      Zeile 230: Hier wurde die Reihenfolge von [m2] und [j-1] vertauscht.
+                                 Es gibt ja nur zwei Matrizen mit jeweils N+1 Zeilen und
+                                 Spalten, also ist Matrix[j-1] ein Fehler, sobald j grösser
+                                 als 2 wird.

@@ -4,7 +4,7 @@
 CC	= gcc
 
 # Compiler flags, paths and libraries
-CFLAGS	= -ggdb -Wall -pedantic -Wextra -Og
+CFLAGS	= -ggdb -Wall -pedantic -Wextra -Og -O0
 LFLAGS  = 
 LIBS	= -lm
 
