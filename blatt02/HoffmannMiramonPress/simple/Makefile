@@ -1,6 +1,6 @@
 all: simple
 	
-CFLAGS = -std=c11 -pedantic -Wall -Wextra -Og -ggdb
+CFLAGS = -std=c11 -pedantic -Wall -Wextra -Og -ggdb -O0
 
 simple: simple.o
 	gcc $(CFLAGS) -o simple simple.o
