@@ -1,16 +1,220 @@
-Zeile 12:    mistake1() returnt einen Pointer auf eine lokale Variable, der kein Speicher 
-             allokiert wurde. Deswegen wird der Speicher an der Adresse von buf wieder
-             freigegeben, nachdem die Funktion mistake1 durchgelaufen ist.
-             Um das zu vermeiden, benutzen wir malloc().
-Zeile 19-20: In mistake2() wird buf Platz für 4 chars zugewiesen, statt für 2 ints.
-             Ausserdem wollen wir in main() den Wert an dem Index 1 haben, das
-             wurde also auch korrigiert.
-Zeile 28-29: In mistake3() ist mistake2_ eine lokale Variable, der wir auch mit
-             malloc() Speicher zuweisen müssen. buf ist dann ein Array, der an der
-             Adresse mistake2_ anfängt.
-Zeile 37-38: In mistake4() wird nur Platz für 4 chars allokiert. Für einen Write an dem
-             Index 4 braucht man generell Platz für 5 ints. Allerdings soll die 4 laut
-             main() am Index 0 stehen.
-Zeile 56:    Der Pointer, der eigentlich gefreed werden soll, fängt noch vor p[1] an,
-             deswegen wird free(&p[1][-1]) aufgerufen. Das gleiche gilt für p[0], aber
-             p[2] und p[3] können normal gefreed werden.
+###############################################################################
+---------------------------- 1. Debugging with gdb ----------------------------
+###############################################################################
+Aufruf: gdb ./simple
+
+!!! Hinweis: Der Code wurde zu Begin mit clang-format auto formattiert. 
+!!! Somit kommt es zu Unterschieden der Zeilennummern. Die folgenden Fehler
+!!! wurden chronologisch nach und nach korrigiert. Die Zeilenangaben beziehen
+!!! sich auf den Zwischenstand nachdem der vorherige Fehler korrigiert wurde.
+
+!!! Zur besseren Korrektur beziehen sich die Zeilenangaben im Format #Zeile# 
+!!! auf die unformattierte Ursprungsdatei.
+
+
+
+---Fehlermeldung:
+Program received signal SIGSEGV, Segmentation fault.
+mistake3 () at simple.c:24
+24	    buf[0] = 3;
+
+---Fehlerhafter Abschnitt (Zeile 22-24): #28-30#
+20  int *mistake3(void) {
+21      /* In dieser Funktion darf kein Speicher direkt allokiert werden. */
+22      int mistake2_ = 0; 
+23      int *buf = (int *)&mistake2;
+24      buf[0] = 3;
+25      return buf;
+26  }
+
+---Ursache:
+mistake2_ ist eine ungenutzte lokale Variable. In Zeile 23 wird versucht eine
+Variable buf zu erzeugen, indem die Adresse einer nicht existierende Variable 
+mistake2 als int* gecastet wird. Man könnte mistake2 Klammern hinzufügen und 
+den Adressoperator entfernen, dann würde die Methode mistake2() aufgerufen 
+werden. Das casten zu int* wäre dabei unnötig, da mistake2() bereits den Typ 
+int* hat. Wir haben uns für eine alternative Lösung entschieden, die die 
+Variable mistake2_ einbindet.
+
+---Fix:
+int *mistake3(void) {
+    /* In dieser Funktion darf kein Speicher direkt allokiert werden. */
+    int *mistake2_ = mistake2();
+    int *buf = mistake2_;
+    buf[0] = 3;
+    return buf;
+}
+
+
+
+
+---Fehlermeldung:
+Program received signal SIGSEGV, Segmentation fault.
+main () at simple.c:39
+39	    printf("1 - %d\n", *p[0]);
+
+---Fehlerhafter Abschnitt (Zeile 9): #10#
+09  int *mistake1(void) {
+10      int buf[] = {1, 1, 2, 3, 4, 5};
+11      return buf;
+12  }
+
+---Ursache:
+buf[] ist eine lokale Variable und existiert nach dem Verlassen der Methode 
+nicht mehr. Um einen Pointer auf einem Wert zurückgeben zu können, müssen wir 
+den Speicher allokieren. Dazu reservieren wir den benötigten Speicher mit 
+malloc in buf_malloc. Mithilfe von memcpy übertragen wir dann die lokalen Werte 
+von buf auf den allokierten Speicherbereich. Zur korrekten Nutzung von memcpy 
+müssen wir die Libary <string.h> includen. Nach dem Zurückgeben von buf_malloc 
+existieren die Werte weiterhin, bis der Speicher freigegeben wird.
+
+---Fix:
+int *mistake1(void) {
+    int *buf_alloc = (int *)malloc(sizeof(int) * 6);
+    int buf[] = {1, 1, 2, 3, 4, 5};
+    memcpy(buf_alloc, buf, sizeof(int) * 6);
+    return buf_alloc;
+}
+
+
+
+
+---Fehlermeldung:
+free(): invalid pointer
+(gdb) bt
+#5  0x0000000000401282 in main () at simple.c:49
+
+---Fehlerhafter Abschnitt (Zeile 49): #56#
+free(p[1]); 
+
+---Ursache:
+p[1] ist die Adresse von mistake2()[1], also die Adresse von buf[1]. Wir haben
+aber den Speicher mit buf allokiert und müssen diesen auch wieder mit buf freigeben.
+Zum Freigeben benötigen wir daher die Adresse vor buf[1], 
+also (&buf[1] - 1) = &buf[0] = buf.
+
+---Fix:
+free(p[1] - 1);
+
+
+
+
+---Fehlermeldung (Output): 
+2 - 0
+
+---Fehlerhafter Abschnitt (Zeile 19): #20#
+17  int *mistake2(void) {
+18      int *buf = malloc(sizeof(char) * 4);
+19      buf[2] = 2;
+20      return buf;
+21  }
+
+---Ursache:
+Beim printen rufen wir den Wert an der Stelle p[1] auf, wobei p[1] die Adresse
+von mistake2()[1] entspricht. Daher wird der Wert buf[1] zurückgegeben. In der
+Ursprungsdatei speichern wir den gesuchten Wert aber an Index 2 und nicht 1.
+
+---Fix:
+int *mistake2(void) {
+    int *buf = malloc(sizeof(char) * 4);
+    buf[1] = 2;
+    return buf;
+}
+
+
+
+
+---Fehlermeldung (Output): 
+4 - 0
+
+---Fehlerhafter Abschnitt (Zeile 33-34): #38-39#
+31  int *mistake4(void) {
+32      int *buf = malloc(sizeof(char) * 4);
+33      buf[4] = 4;
+34      free(buf);
+35      return buf;
+36  }
+
+---Ursache:
+In Zeile 34 wird buf wieder freigegeben, weshalb der Wert beim Zurückgeben
+nicht mehr existiert. Zudem wird der Wert an der Stelle p[3] geprintet, wobei
+p[3] die Adresse von mistake4() entspricht. mistake4() gibt wiederrum buf 
+zurück, weshalb der gewünschte Wert in buf[0] und nicht buf[4] gespeichert 
+werden muss.
+
+---Fix:
+int *mistake4(void) {
+    int *buf = malloc(sizeof(char) * 4);
+    buf[0] = 4;
+    return buf;
+}
+
+
+
+
+###############################################################################
+--------------------- 2. Debugging with valgrinds memcheck --------------------
+###############################################################################
+Aufruf: valgrind --tool=memcheck --leak-check=full ./simple
+
+
+
+---Fehlermeldung:
+==3846042== Invalid write of size 4
+==3846042==    at 0x4011A7: mistake2 (simple.c:19)
+
+---Fehlerhafter Abschnitt (Zeile 18): #19#
+18    int *buf = malloc(sizeof(char) * 4);
+19    buf[1] = 2;
+
+---Ursache:
+Es wird der Speicher für chars reserviert, obwohl wir die Speichergröße für 
+integer benötigen. Wir bräuchten hier eigentlich nur den Speicher von 2 int,
+da wir aber Modifikationen möglichst gering halten sollen, belassen wir es 
+bei * 4.
+
+---Fix:
+int *buf = malloc(sizeof(int) * 4);     
+
+
+
+
+---Fehlermeldung:
+==3853057==   total heap usage: 5 allocs, 2 frees, 1,084 bytes allocated
+==3853057== 4 bytes in 1 blocks are definitely lost in loss record 1 of 3
+==3853057==    by 0x4011D4: mistake4 (simple.c:32)
+==3853057== 16 bytes in 1 blocks are definitely lost in loss record 2 of 3
+==3853057==    by 0x4011A6: mistake2 (simple.c:18)
+==3853057== 24 bytes in 1 blocks are definitely lost in loss record 3 of 3
+==3853057==    by 0x401153: mistake1 (simple.c:11)
+
+---Fehlerhafte Abschnitte (Zeile 11, 18, 32): #x,19,37#
+11    int *buf_alloc = (int *)malloc(sizeof(int) * 6);
+18    int *buf = malloc(sizeof(int) * 4);
+32    int *buf = malloc(sizeof(char) * 4);
+
+---Ursache:
+Die obigen Speicherallokationen wurden nicht wieder freigegeben und müssen
+somit am Ende noch freigegeben werden.
+
+---Fix:
+    free(p[0] - 1);
+    free(p[2]);
+    free(p[3]);
+
+
+
+---Weiteres:
+valgrinds memcheck und gdb geben nun keine Fehlermeldungen mehr. Allerdings
+wird in Zeile 32 #37# der Speicher noch nicht ganz korrekt allokiert.
+32    int *buf = malloc(sizeof(char) * 4);
+
+Da wir integer benutzen, müssten wir hier ebenfalls den Speicherplatz für die 
+Größe int (und nicht char) allokieren. Da der Speicherplatz für 4 chars für
+einen int ausreicht, wird hier kein Fehler erkannt.
+Laut Aufgabe sollen wir die Modifikation möglichst gering halten, allerdings
+steht in der Aufgabe auch: "Modifizieren Sie das Programm unter Zuhilfenahme 
+von valgrinds memcheck so, dass jede Methode Speicher korrekt reserviert[...]."
+
+Wir haben uns demnach dazu entschieden diesen Fehler noch zu beheben, 
+allerdings die "* 4" beizubehalten, auch wenn dies nicht nötig wäre.
