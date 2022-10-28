@@ -1,55 +1,73 @@
-(gdb) break 10
-Breakpoint 1 at 0x40114a: file simple.c, line 12.
+(gdb) b 9
+Breakpoint 1 at 0x401160: file simple.c, line 9.
 (gdb) run
-Starting program: /home/miramon/hr-uebungen/blatt02/HoffmannMiramonPress/simple/simple 
+Starting program: /home/hoffmann4/hr-uebungen/blatt02/HoffmannMiramonPress/simple/simple
 
-Breakpoint 1, mistake1 () at simple.c:12
-12        int buf[] = { 1, 1, 2, 3, 4, 5 };
-(gdb) print buf
-$1 = {194, 0, -33049, 32767, -33050, 32767}
-(gdb) print buf[2]
-$2 = -33049
+Breakpoint 1, mistake1 () at simple.c:10
+10	    int buf[] = {1, 1, 2, 3, 4, 5};
+(gdb) p buf
+$1 = {0, 0, 16830464, 0, 4194368, 0}
+(gdb) p buf[2]
+$2 = 16830464
 (gdb) next
-13        return buf;
-(gdb) print buf
+11	    return buf;
+(gdb) p buf
 $3 = {1, 1, 2, 3, 4, 5}
-(gdb) print buf[2]
+(gdb) p buf[2]
 $4 = 2
-(gdb) break 17
-Breakpoint 2 at 0x401183: file simple.c, line 19.
+(gdb) ptype buf
+type = int [6]
+(gdb) explore buf
+'buf' is an array of 'int'.
+Enter the index of the element you want to explore in 'buf': 2
+'buf[2]' is a scalar value of type 'int'.
+buf[2] = 2
+
+Press enter to return to parent value:
+
+Returning to parent value...
+
+'buf' is an array of 'int'.
+Enter the index of the element you want to explore in 'buf': q
+(gdb) b 14
+Breakpoint 2 at 0x401146: file simple.c, line 14.
 (gdb) c
 Continuing.
 
-Breakpoint 2, mistake2 () at simple.c:19
-19        int *buf = malloc (sizeof (char) * 4);
-(gdb) print buf
-$5 = (int *) 0x4012fd <__libc_csu_init+77>
+Breakpoint 2, mistake2 () at simple.c:14
+14	int *mistake2(void) {
+(gdb) ptype buf
+type = int *
+(gdb) explore buf
+'buf' is a pointer to a value of type 'int'
+Continue exploring it as a pointer to a single value [y/n]: n
+Continue exploring it as a pointer to an array [y/n]: n
 (gdb) c
 Continuing.
 
 Program received signal SIGSEGV, Segmentation fault.
-0x00000000004011bc in mistake3 () at simple.c:30
-30        buf[0] = 3;
+mistake3 () at simple.c:24
+24	    buf[0] = 3;
 (gdb) list
-25      mistake3 (void)
-26      {
-27        /* In dieser Funktion darf kein Speicher direkt allokiert werden. */
-28        int mistake2_ = 0;
-29        int *buf = (int *) &mistake2;
-30        buf[0] = 3;
-31        return buf;
-32      }
-33
-34      int *
-(gdb) bt
-#0  0x00000000004011bc in mistake3 () at simple.c:30
-#1  0x0000000000401225 in main () at simple.c:47
+19	
+20	int *mistake3(void) {
+21	    /* In dieser Funktion darf kein Speicher direkt allokiert werden. */
+22	    int mistake2_ = 0;
+23	    int *buf = (int *)&mistake2;
+24	    buf[0] = 3;
+25	    return buf;
+26	}
+27	
+28	int *mistake4(void) {
+(gdb) bt full
+#0  mistake3 () at simple.c:24
+        buf = 0x401146 <mistake2>
+#1  0x00000000004011fa in main () at simple.c:37
+        p = {0x4, 0x4052a4, 0x7ffff7fbd2e8 <__exit_funcs_lock>, 0x401280 <__libc_csu_init>}
 (gdb) frame 1
-#1  0x0000000000401225 in main () at simple.c:47
-47        int *p[4] = { &mistake1 ()[1], &mistake2 ()[1], mistake3 (), mistake4 () };
+#1  0x00000000004011fa in main () at simple.c:37
+37	    int *p[4] = {&mistake1()[1], &mistake2()[1], mistake3(), mistake4()};
 (gdb) info locals
-p = {0x4, 0x4052a4, 0x7fffffff7ff0, 0x0}
-(gdb) print p
-$6 = {0x4, 0x4052a4, 0x7fffffff7ff0, 0x0}
+p = {0x4, 0x4052a4, 0x7ffff7fbd2e8 <__exit_funcs_lock>, 0x401280 <__libc_csu_init>}
 (gdb) call mistake4()
-$9 = (int *) 0x4052c0
+$5 = (int *) 0x4052c0
