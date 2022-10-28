@@ -1,8 +1,107 @@
-Datei: askparams.c Zeile 199:    Hier wurde statt 5 555 geschrieben, und da das Programm
-                                 nicht mit so vielen Argumenten aufgerufen wird, führt das
-                                 zu einem Fehler.
-Datei: partdiff-seq.c Zeile 96:  Hier wurde nur Platz für N-1 Zeilen allokiert (statt N+1).
-                      Zeile 230: Hier wurde die Reihenfolge von [m2] und [j-1] vertauscht.
-                                 Es gibt ja nur zwei Matrizen mit jeweils N+1 Zeilen und
-                                 Spalten, also ist Matrix[j-1] ein Fehler, sobald j grösser
-                                 als 2 wird.
+###############################################################################
+---------------------------- 1. Debugging with gdb ----------------------------
+###############################################################################
+Aufruf: gdb --args ./partdiff-seq 1 1 100 1 2 5
+Aufruf: gdb ./partdiff-seq
+
+
+
+---Fehlermeldung:
+Program received signal SIGSEGV, Segmentation fault.
+(gdb) bt
+#4  0x0000000000401fa0 in AskParams (method=method@entry=0x405138 <method>,
+    interlines=interlines@entry=0x405134 <interlines>, func=func@entry=0x405130 <inf_func>,
+    termination=termination@entry=0x40512c <termination>,
+    term_precision=term_precision@entry=0x405120 <term_precision>,
+    term_iteration=term_iteration@entry=0x405128 <term_iteration>, argC=7,
+    argV=0x7fffffff82a8) at askparams.c:172
+
+---Fehlerhafter Abschnitt (Zeile 172 in askparams.c): #199#
+172        sscanf(argV[555], "%d", termination);
+
+---Ursache:
+Es wird ein 556. Argument als termination erwartet. Da es nicht so viele
+Argumente gibt und das 6. undefiniert ist, kommt es zu einem Fehler.
+
+---Fix:
+        sscanf(argV[5], "%d", termination);
+
+
+
+
+---Fehlermeldung:
+Program received signal SIGSEGV, Segmentation fault.
+0x000000000040168f in calculate () at partdiff-seq.c:203
+
+---Fehlerhafter Abschnitt (Zeile 203): #230#
+203                star = -Matrix[m2][i - 1][j] - Matrix[j - 1][m2][i] +
+204                       4 * Matrix[m2][i][j] - Matrix[m2][i][j + 1] -
+205                       Matrix[m2][i + 1][j];
+
+---Ursache:
+Die Reihenfolge von [m2], [i] und [j-1] ist falsch. Da beispielsweise m2
+nur 0 oder 1 sein kann, gibt es einen Fehler bei einer Iteration, bei der
+j größer als 2 ist.
+
+---Fix:
+                star = -Matrix[m2][i - 1][j] - Matrix[m2][i][j - 1] +
+                       4 * Matrix[m2][i][j] - Matrix[m2][i][j + 1] -
+                       Matrix[m2][i + 1][j];
+
+
+
+
+###############################################################################
+--------------------- 2. Debugging with valgrinds memcheck --------------------
+###############################################################################
+Aufruf: valgrind --tool=memcheck --leak-check=full ./partdiff-seq
+
+
+
+---Fehlermeldung:
+==3890328==  Address 0x4b9aaa0 is 0 bytes after a block of size 4,080 alloc'd
+==3890328==    at 0x483B7F3: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==3890328==    by 0x4019AE: allocateMatrices (partdiff-seq.c:86)
+
+---Fehlerhafter Abschnitt (Zeile 86): #96#
+86    M = malloc(sizeof(double) * (N + 1) * (N - 1) * 2); /* allocate memory */
+
+---Ursache:
+Es wurde zu wenig Speicher allokiert, weshalb außerhalb des Speicherplatz 
+zugegriffen wurde. Es müsste Speicherplatz für N+1 Zeilen, sowie N+1 Spalten
+allokiert werden (statt N-1).
+
+---Fix:
+    M = malloc(sizeof(double) * (N + 1) * (N + 1) * 2); /* allocate memory */
+
+
+
+
+---Fehlermeldung:
+==3891659== Invalid read of size 8
+==3891659==    at 0x4014C9: freeMatrices (partdiff-seq.c:149)
+...
+
+---Fehlerhafter Abschnitt (Zeile 148-152): #165-169#
+147     void freeMatrices(void) {
+148         free(Matrix);
+149         if (Matrix[1] != 0)
+150             free(Matrix[1]);
+151         if (Matrix[0] != 0)
+152             free(Matrix[0]);
+153     }
+
+---Ursache:
+In den if-cases wird versucht auf den Speicherplatz zuzugreifen, der in Zeile
+148 schon freigegeben wurde. Daher muss dieser Speicherplatz erst nach den
+if-cases freigegeben werden.
+
+---Fix:
+void freeMatrices(void) {
+    if (Matrix[1] != 0)
+        free(Matrix[1]);
+    if (Matrix[0] != 0)
+        free(Matrix[0]);
+    free(Matrix);
+}
+
