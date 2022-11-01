@@ -20,6 +20,7 @@ partdiff-seq: $(OBJS) Makefile
 
 clean:
 	$(RM) *.o *~
+	$(RM) partdiff-seq
 
 partdiff-seq.o: partdiff-seq.c Makefile
 
