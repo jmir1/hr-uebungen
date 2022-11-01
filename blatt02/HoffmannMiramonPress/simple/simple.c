@@ -5,13 +5,11 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
 int *mistake1(void) {
-    int *buf_alloc = (int *)malloc(sizeof(int) * 6);
-    int buf[] = {1, 1, 2, 3, 4, 5};
-    memcpy(buf_alloc, buf, sizeof(int) * 6);
-    return buf_alloc;
+    int *buf = malloc(sizeof(int) * 2);
+    buf[1] = 1;
+    return buf;
 }
 
 int *mistake2(void) {

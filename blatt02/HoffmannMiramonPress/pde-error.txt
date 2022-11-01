@@ -54,7 +54,7 @@ j größer als 2 ist.
 ###############################################################################
 --------------------- 2. Debugging with valgrinds memcheck --------------------
 ###############################################################################
-Aufruf: valgrind --tool=memcheck --leak-check=full ./partdiff-seq
+Aufruf: valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all ./partdiff-seq 1 1 100 1 2 5
 
 
 
@@ -105,3 +105,19 @@ void freeMatrices(void) {
     free(Matrix);
 }
 
+
+
+
+---Fehlermeldung:
+==3551099== 10,471,696 bytes in 1 blocks are still reachable in loss record 1 of 1
+==3551099==    at 0x483B7F3: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==3551099==    by 0x4019A9: allocateMatrices (partdiff-seq.c:86)
+
+---Fehlerhafter Abschnitt (Zeile 86):
+86    M = malloc(sizeof(double) * (N + 1) * (N + 1) * 2); /* allocate memory */
+
+---Ursache:
+Speicher wurde nicht wieder freigegeben.
+
+---Fix:
+free(M);
