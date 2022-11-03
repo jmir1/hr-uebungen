@@ -29,6 +29,7 @@
     - "Backfill": Das gleiche, aber es können Jobs mit geringerer Priorität
       eingeschoben werden, wenn deren Laufzeitbegrenzung so klein ist, dass
       sie Jobs mit höherer Priorität nicht warten lassen werden.
+    Der Cluster benutzt momentan "Backfill".
 
 12. salloc -p west --nodelist=west7
     srun hostname
