@@ -1,3 +1,5 @@
+Aufgabe 1:
+
 1.  Batch Queuing bezeichnet das Konzept, mehrere Jobs auf einem Rechner in einer
     sog. Queue anzuordnen, um jedem Job genug Ressourcen zuweisen zu können.
 
@@ -23,7 +25,7 @@
 
 9.  Nein.
 
-10. squeue --job=<job-id> --long
+10. scontrol show jobid=<job-id>
 
 11. - "Builtin": FIFO-Prinzip, nach Priorität sortiert
     - "Backfill": Das gleiche, aber es können Jobs mit geringerer Priorität
@@ -45,3 +47,20 @@
 
 15. abu, amd, magny, nehalem, west
     Mit dem Argument -p kann eine Partition angegeben werden.
+
+
+Aufgabe 2:
+
+Frage 1:
+    Es fällt auf, dass innerhalb eines Knotens die Jobs parallel ausgeführt werden.
+    Allerdings vergeht etwas Zeit, bis auf dem nächsten Knoten die nächsten 4 Jobs
+    gestartet werden. Dies liegt wahrscheinlich daran, dass das Skript timescript
+    so schnell ausgeführt wird, dass man die Verzögerung bemerkt, die dadurch
+    verursacht wird, dass slurm nicht mehrere Knoten auf einmal zuweist. Fügt man
+    ein "sleep 1" im timescript ein, sieht man, dass alle Knoten tatsächlich parallel
+    arbeiten, weil der Zeitunterschied von einem Knoten zum anderen weit unter einer
+    Sekunde liegt.
+
+Frage 2:
+    Nein, weil dann mehrere Prozesse versuchen würden, gleichzeitig die selbe Datei
+    anzulegen.

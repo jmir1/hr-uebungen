@@ -1,0 +1,13 @@
+#!/bin/bash
+
+# Run a total of twelve tasks on three nodes (that is, four tasks per node).
+#SBATCH --nodes=3
+#SBATCH --ntasks-per-node=4
+#SBATCH --ntasks=12
+# Use "west" partition.
+#SBATCH --partition=west
+#SBATCH --output=timescript.out
+
+srun ./timescript
+
+printf "fertig" > job_script.out
