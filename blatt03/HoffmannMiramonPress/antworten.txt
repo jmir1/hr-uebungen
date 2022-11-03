@@ -1,0 +1,46 @@
+1.  Batch Queuing bezeichnet das Konzept, mehrere Jobs auf einem Rechner in einer
+    sog. Queue anzuordnen, um jedem Job genug Ressourcen zuweisen zu können.
+
+2.  Ein Batch-Queuing-System muss Aufträge von vielen Nutzern annehmen können, sie
+    gemäß einer gewissen Priorität ausführen und die Ausführung überwachen, bzw.
+    es den Nutzern ermöglichen.
+
+3.  Torque, Slurm, Some Grid Engine
+
+4.  Slurm
+
+5.  sbatch nimmt eine Vielzahl von Argumenten an, mit denen man verschiedenste
+    Parameter für die Ausführung kontrollieren kann.
+    Grundsätzlich nimmt sbatch aber eine ausführbare Datei an (meistens ein für
+    sbatch geschriebenes Shell-Script).
+
+6.  Mit dem Befehl squeue oder smap.
+
+7.  - Benutzerfreundlichkeit
+    - Möglichkeit, mit Jobs zu interagieren (löschen, bearbeiten, etc.)
+
+8.  Mit dem Befehl scancel
+
+9.  Nein.
+
+10. squeue --job=<job-id> --long
+
+11. - "Builtin": FIFO-Prinzip, nach Priorität sortiert
+    - "Backfill": Das gleiche, aber es können Jobs mit geringerer Priorität
+      eingeschoben werden, wenn deren Laufzeitbegrenzung so klein ist, dass
+      sie Jobs mit höherer Priorität nicht warten lassen werden.
+
+12. salloc -p west --nodelist=west7
+    srun hostname
+    Alternativ kann man sich per SSH mit dem allokierten Knoten verbinden und dann
+    irgendetwas ausführen.
+
+13. 6 Stunden
+
+14. Mit dem Befehl sprio kann man die Priorität der wartenden Jobs prüfen. Der
+    Prioritätswert wird durch eine Funktion berechnet, in der verschiedene
+    Variablen vorkommen können. Auf dem Cluster kann man z.B. durch Anfragen von
+    einer geringen Anzahl von Nodes die Priorität erhöhen.
+
+15. abu, amd, magny, nehalem, west
+    Mit dem Argument -p kann eine Partition angegeben werden.
