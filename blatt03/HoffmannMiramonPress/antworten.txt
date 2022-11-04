@@ -3,9 +3,9 @@ Aufgabe 1:
 1.  Batch Queuing bezeichnet das Konzept, mehrere Jobs auf einem Rechner in einer
     sog. Queue anzuordnen, um jedem Job genug Ressourcen zuweisen zu können.
 
-2.  Ein Batch-Queuing-System muss Aufträge von vielen Nutzern annehmen können, sie
-    gemäß einer gewissen Priorität ausführen und die Ausführung überwachen, bzw.
-    es den Nutzern ermöglichen.
+2.  Ein Batch-Queuing-System nimmt erstens Aufträge von Nutzern an und weist ihnen Ressourcen
+    zu. Zweitens ermöglicht es, Jobs zu starten, zu verwalten und zu überwachen. Drittens
+    verwaltet es die Queue, damit alle Nutzer, die Ressourcen benötigen, sie auch bekommen.
 
 3.  Torque, Slurm, Some Grid Engine
 
@@ -16,12 +16,12 @@ Aufgabe 1:
     Grundsätzlich nimmt sbatch aber eine ausführbare Datei an (meistens ein für
     sbatch geschriebenes Shell-Script).
 
-6.  Mit dem Befehl squeue oder smap.
+6.  Mit dem Befehl squeue oder smap für eine minimale grafische Oberfläche.
 
 7.  - Benutzerfreundlichkeit
     - Möglichkeit, mit Jobs zu interagieren (löschen, bearbeiten, etc.)
 
-8.  Mit dem Befehl scancel
+8.  Mit dem Befehl scancel <job-id>
 
 9.  Nein.
 
@@ -52,7 +52,9 @@ Aufgabe 1:
 Aufgabe 2:
 
 Frage 1:
-    Es fällt auf, dass innerhalb eines Knotens die Jobs parallel ausgeführt werden.
+    Die Ausgaben sind nicht chronologisch sortiert, weil die Jobs parallel
+    ausgeführt werden.
+    Außerdem fällt auf, dass innerhalb eines Knotens die Jobs parallel ausgeführt werden.
     Allerdings vergeht etwas Zeit, bis auf dem nächsten Knoten die nächsten 4 Jobs
     gestartet werden. Dies liegt wahrscheinlich daran, dass das Skript timescript
     so schnell ausgeführt wird, dass man die Verzögerung bemerkt, die dadurch
