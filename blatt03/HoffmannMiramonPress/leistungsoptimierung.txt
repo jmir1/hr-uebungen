@@ -77,11 +77,16 @@ Each sample counts as 0.01 seconds.
   0.00     95.39     0.00        1     0.00     0.00  initVariables
 
 
-Mit gprof sieht man, dass sich das Programm 91% der Zeit in calculate befindet.
-Demnach wissen wir, dass wir hauptsächlich die Funktion calculate ändern bzw.
-optimieren müssen.
+Mit gprof sieht man, dass sich das Programm 91% der Zeit in calculate befindet,
+wobei ein Aufruf von calculate 86.88 Sekunden dauert. Demnach wissen wir, dass 
+wir hauptsächlich die Funktion calculate ändern bzw. optimieren müssen.
+
 Nach calculate benötigt die Funktion getResiduum mit 7,8% am meisten Zeit. 
-Dies liegt aber daran, dass sie sehr häufig aufgerufen wird (2758256640 mal).
+Dies liegt aber daran, dass sie sehr häufig aufgerufen wird (2758256640 mal),
+denn pro Aufruf braucht getResidum ~0.00 Sekunden. 
+
+Außerdem sehen wir, dass ein Aufruf von initMatrices 1.1 Sekunden dauert.
+Hier könnte man ggf. auch etwas optimieren.
 
 
 
@@ -111,7 +116,47 @@ Wir nutzen hier für perf ebenfalls die Kompilierung mit -O0.
        0.000000000 seconds sys
 
 
-#TODO: Erläutern Sie die Bedeutung der einzelnen Statistiken und mögliche Einflüsse
-auf die Leistung Ihres Programmes. 
+#TODO:  Erläutern Sie die Bedeutung der einzelnen Statistiken und mögliche 
+        Einflüsse auf die Leistung Ihres Programmes. 
+
+
+Mit perf stat erhält man sogennante "counter stats", man weist also die CPU an,
+eine Zählstatistik für bestimmte Ereignisse anzulegen. Betrachten wir beispiels-
+weise die letzten drei Punkte (instructions, branches und branch-misses):
+Die Zahl vor instructions gibt an, dass in den 144 sekunden ca. 477,4 Milliarden 
+Befehle ausgeführt wurden. Insgesamt wurden 22 Milliarden Verzweigungen ausgeführt
+und davon führten 8 Millionen zu einem "Branch miss" und einem darauffolgenden 
+pipeline flush der CPU (CPU wirft seine Befehlspipeline über Bord, damit die 
+anschließenden Berechnungen mit Sicherheit fehlerfrei ausgeführt werden können).
+
+
+
+
+###############################################################################
+------------------------- 4 Berechnungs-optimierungen -------------------------
+###############################################################################
+
+Wir nutzen ab jetzt die Optimierungsflag -O3. Die Zeilenangaben beziehen sich
+auf die unformatierte Original-Datei.
+
+Zunächst versuchen wir die Funktion calculate zu optimieren.
+
+Zeile 219-223:
+Als erstes haben wir in calculate die Iteration über Spalten und Zeilen 
+vertauscht, da ursprünglich erst über alle Zeilen und dann alle Spalten
+iteriert wurde. So muss immer ein Speicherbereich zur nächsten Zeile über-
+sprungen werden, was deutlich länger dauert, als einfach die Zeilen 
+hintereinander (also immer das nächste Element im Speicherbereich) aufzurufen.
+
+Jacobi-1:       18.726063 s
+Jacobi-2:       77.242255 s
+
+GaussSeidel-1:  30.212382 s
+GaussSeidel-2:  79.418067 s
+
+
+
+
+
 
 
