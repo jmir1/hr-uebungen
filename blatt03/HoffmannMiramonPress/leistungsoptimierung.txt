@@ -3,18 +3,12 @@ Wir bezeichnen die Aufrufe für unsere Vergleichsmessungen wiefolgt:
 Jacobi-1:       ./partdiff-seq 1 2 64 1 2 10240
 Jacobi-2:       ./partdiff-seq 1 2 64 2 2 5120
 
-GaussSeidel-1:  ./partdiff-seq 1 1 64 1 2 10240
-GaussSeidel-2:  ./partdiff-seq 1 1 64 2 2 5120
-
 
 
 KEINE OPTIMIERUNG (-O0):
 
 Jacobi-1:       110.718604 s
 Jacobi-2:       133.954952 s
-
-GaussSeidel-1:  102.117214 s
-GaussSeidel-2:  132.186215 s
 
 
 
@@ -120,17 +114,6 @@ Wir nutzen hier für perf ebenfalls die Kompilierung mit -O0.
         Einflüsse auf die Leistung Ihres Programmes. 
 
 
-Mit perf stat erhält man sogennante "counter stats", man weist also die CPU an,
-eine Zählstatistik für bestimmte Ereignisse anzulegen. Betrachten wir beispiels-
-weise die letzten drei Punkte (instructions, branches und branch-misses):
-Die Zahl vor instructions gibt an, dass in den 144 sekunden ca. 477,4 Milliarden 
-Befehle ausgeführt wurden. Insgesamt wurden 22 Milliarden Verzweigungen ausgeführt
-und davon führten 8 Millionen zu einem "Branch miss" und einem darauffolgenden 
-pipeline flush der CPU (CPU wirft seine Befehlspipeline über Bord, damit die 
-anschließenden Berechnungen mit Sicherheit fehlerfrei ausgeführt werden können).
-
-
-
 
 ###############################################################################
 ------------------------- 4 Berechnungs-optimierungen -------------------------
@@ -139,7 +122,6 @@ anschließenden Berechnungen mit Sicherheit fehlerfrei ausgeführt werden könne
 Wir nutzen ab jetzt die Optimierungsflag -O3. Die Zeilenangaben beziehen sich
 auf die unformatierte Original-Datei.
 
-Zunächst versuchen wir die Funktion calculate zu optimieren.
 
 Zeile 219-223:
 Als erstes haben wir in calculate die Iteration über Spalten und Zeilen 
@@ -151,12 +133,38 @@ hintereinander (also immer das nächste Element im Speicherbereich) aufzurufen.
 Jacobi-1:       18.726063 s
 Jacobi-2:       77.242255 s
 
-GaussSeidel-1:  30.212382 s
-GaussSeidel-2:  79.418067 s
+
+
+Zeile 232: 
+Wir verschieben die Zeile 232 direkt unter Zeile 228, da in Zeile 228 die 
+Variable korrektur initialisiert wird und sie nach Zeile 232 nicht mehr 
+benötigt wird. Nun muss korrektur nicht mehr gespeichert werden, während
+andere Berechnungen ausgeführt werden.
+228             korrektur = residuum;
+                ...
+232				Matrix[m1][i][j] = Matrix[m2][i][j] + korrektur;
+
+Jacobi-1:       17.285843 s
+Jacobi-2:       75.378576 s
 
 
 
+Weitere Ideen zur Laufzeit-Optimierung, welche aber keinen Unterschied gemacht 
+haben oder wir uns nicht sicher waren, ob wir dies ändern sollen/dürfen:
+    -   löschen von m1 und m2 exchange in calculate und results->m = m1;
+    -   Matrizen mit calloc statt malloc allokieren, um 0-Initialisierung
+        in initMatrices nicht zu benötigen
+    -   switch statt if/else cases beim termination check in calculate 
+        (TERM_PREC, TERM_ITER) und getResiduum (FUNC_F0, default)
+    -   fabs() statt residuum = (residuum < 0) ? -residuum : residuum;
 
 
+    -   löschen von Zeile 229 und 230: 
+229             residuum = (residuum < 0) ? -residuum : residuum;
+230				results->stat_precision = (residuum < results->stat_precision) ? results->stat_precision : residuum;
 
+        Das Entfernen von Zeile 229 und 230 macht das Programm deutlich schneller
+        und man erhält die gleichen Ergebnisse.
 
+        Jacobi-1:       5.616056 s
+        Jacobi-2:       39.756336 s
