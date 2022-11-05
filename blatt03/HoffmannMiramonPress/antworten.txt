@@ -1,68 +1,154 @@
-Aufgabe 1:
+###############################################################################
+------------------------------- 1 Batch Queuing -------------------------------
+###############################################################################
 
-1.  Batch Queuing bezeichnet das Konzept, mehrere Jobs auf einem Rechner in einer
-    sog. Queue anzuordnen, um jedem Job genug Ressourcen zuweisen zu können.
 
-2.  Ein Batch-Queuing-System nimmt erstens Aufträge von Nutzern an und weist ihnen Ressourcen
-    zu. Zweitens ermöglicht es, Jobs zu starten, zu verwalten und zu überwachen. Drittens
-    verwaltet es die Queue, damit alle Nutzer, die Ressourcen benötigen, sie auch bekommen.
+1.  Was bedeutet der Begriff Batch Queuing im HPC-Bereich?
 
-3.  Torque, Slurm, Some Grid Engine
+    Batch Queuing bezeichnet das Konzept, mehrere Jobs auf einem Rechner in 
+    einer sog. Queue anzuordnen, um jedem Job genug Ressourcen zuweisen zu 
+    können.
 
-4.  Slurm
 
-5.  sbatch nimmt eine Vielzahl von Argumenten an, mit denen man verschiedenste
+
+2.  Welche Aufgaben hat ein HPC-Batch-Queuing-System?
+
+    Ein Batch-Queuing-System nimmt erstens Aufträge von Nutzern an und weist
+    ihnen Ressourcen zu. Zweitens ermöglicht es, Jobs zu starten, zu verwalten 
+    und zu überwachen. Drittens verwaltet es die Queue, damit alle Nutzer, die 
+    Ressourcen benötigen, sie auch bekommen.
+
+
+
+3.  Nennen Sie drei Beispiele für HPC-Batch-Queuing-Systeme.
+
+    Torque, Slurm, Some Grid Engine
+
+
+
+4.  Welches Batch-Queuing-System wird auf dem WR-Cluster verwendet?
+    
+    Slurm
+
+
+
+5.  Machen Sie sich mit der Manpage von sbatch vertraut. 
+    Beschreiben Sie die Funktionsweise des Kommandos.
+   
+    sbatch nimmt eine Vielzahl von Argumenten an, mit denen man verschiedenste
     Parameter für die Ausführung kontrollieren kann.
     Grundsätzlich nimmt sbatch aber eine ausführbare Datei an (meistens ein für
     sbatch geschriebenes Shell-Script).
 
-6.  Mit dem Befehl squeue oder smap für eine minimale grafische Oberfläche.
 
-7.  - Benutzerfreundlichkeit
+
+6.  Wie lassen sich die aktuellen Jobs und deren Status anzeigen?
+
+    Mit dem Befehl squeue oder smap für eine minimale grafische Oberfläche.
+
+
+
+7.  Machen Sie sich mit dem Befehl sview vertraut. 
+    Beschreiben Sie die wichtigsten Vorteile gegenüber dem vorigen Punkt.
+   
+    - Benutzerfreundlichkeit
     - Möglichkeit, mit Jobs zu interagieren (löschen, bearbeiten, etc.)
 
-8.  Mit dem Befehl scancel <job-id>
 
-9.  Nein.
 
-10. scontrol show jobid=<job-id>
+8.  Gibt es eine Möglichkeit, einen bereits abgeschickten Job zu löschen 
+    (bevor oder während er läuft)? Wenn ja, wie?
+   
+    Mit dem Befehl scancel <job-id>
 
-11. - "Builtin": FIFO-Prinzip, nach Priorität sortiert
+
+
+9.  Können auf dem Cluster mehrere Nutzer oder Jobs gleichzeitig denselben 
+    west-Knoten benutzen?
+    
+    Nein.
+
+
+
+10. Finden Sie heraus wie Sie sich den detaillierten Status eines Jobs ausgeben
+    lassen können.
+     
+    scontrol show jobid=<job-id>
+
+
+
+11. Welche Scheduling-Verfahren sind bei dem auf dem Cluster benutzten System
+    möglich? Welches wird benutzt? Erläutern Sie jedes der Verfahren kurz.
+    
+    - "Builtin": FIFO-Prinzip, nach Priorität sortiert
     - "Backfill": Das gleiche, aber es können Jobs mit geringerer Priorität
       eingeschoben werden, wenn deren Laufzeitbegrenzung so klein ist, dass
       sie Jobs mit höherer Priorität nicht warten lassen werden.
     Der Cluster benutzt momentan "Backfill".
 
-12. salloc -p west --nodelist=west7
+
+
+12. Finden Sie heraus, wie Sie einen einzelnen Knoten allokieren können. 
+    Allokieren Sie einen konkreten Knoten (z. B. west7), bauen Sie eine 
+    Verbindung zu diesem Knoten auf und führen sie hostname darauf aus.
+    
+    salloc -p west --nodelist=west7
     srun hostname
-    Alternativ kann man sich per SSH mit dem allokierten Knoten verbinden und dann
-    irgendetwas ausführen.
+    Alternativ kann man sich per SSH mit dem allokierten Knoten verbinden und 
+    dann irgendetwas ausführen.
 
-13. 6 Stunden
 
-14. Mit dem Befehl sprio kann man die Priorität der wartenden Jobs prüfen. Der
-    Prioritätswert wird durch eine Funktion berechnet, in der verschiedene
-    Variablen vorkommen können. Auf dem Cluster kann man z.B. durch Anfragen von
-    einer geringen Anzahl von Nodes die Priorität erhöhen.
 
-15. abu, amd, magny, nehalem, west
+13. Wie hoch ist das Timeout auf dem Cluster, bis alle Knoten wieder 
+    freigegeben werden?
+     
+    6 Stunden
+
+
+
+14. Wie können Sie die Priorität Ihrer Jobs nachschauen? Können Sie diese 
+    verändern oder beeinflussen?
+    
+    Mit dem Befehl sprio kann man die Priorität der wartenden Jobs prüfen. 
+    Der Prioritätswert wird durch eine Funktion berechnet, in der verschiedene
+    Variablen vorkommen können. Auf dem Cluster kann man z.B. durch Anfragen 
+    von einer geringen Anzahl von Nodes die Priorität erhöhen.
+
+
+
+15. Welche unterschiedlichen Partitionen sind auf dem Cluster eingerichtet? 
+    Wie kann die zu benutzende Partition geändert werden? 
+    
+    abu, amd, magny, nehalem, west
     Mit dem Argument -p kann eine Partition angegeben werden.
 
 
-Aufgabe 2:
 
-Frage 1:
+
+###############################################################################
+------------------ 2 Paralleles Starten eines Shell-Scripts -------------------
+###############################################################################
+
+
+4. Führen Sie das Script mehrmals aus.
+
+Frage 1: Was fällt Ihnen auf? Versuchen Sie Ihre Beobachtung zu erklären!
+
     Die Ausgaben sind nicht chronologisch sortiert, weil die Jobs parallel
-    ausgeführt werden.
-    Außerdem fällt auf, dass innerhalb eines Knotens die Jobs parallel ausgeführt werden.
-    Allerdings vergeht etwas Zeit, bis auf dem nächsten Knoten die nächsten 4 Jobs
-    gestartet werden. Dies liegt wahrscheinlich daran, dass das Skript timescript
-    so schnell ausgeführt wird, dass man die Verzögerung bemerkt, die dadurch
-    verursacht wird, dass slurm nicht mehrere Knoten auf einmal zuweist. Fügt man
-    ein "sleep 1" im timescript ein, sieht man, dass alle Knoten tatsächlich parallel
-    arbeiten, weil der Zeitunterschied von einem Knoten zum anderen weit unter einer
-    Sekunde liegt.
+    ausgeführt werden. Außerdem fällt auf, dass innerhalb eines Knotens die 
+    Jobs parallel ausgeführt werden. Allerdings vergeht etwas Zeit, bis auf dem 
+    nächsten Knoten die nächsten 4 Jobs gestartet werden. 
+    Dies liegt wahrscheinlich daran, dass das Skript timescript so schnell 
+    ausgeführt wird, dass man die Verzögerung bemerkt, die dadurch verursacht 
+    wird, dass slurm nicht mehrere Knoten auf einmal zuweist. Fügt man ein 
+    "sleep 1" im timescript ein, sieht man, dass alle Knoten tatsächlich 
+    parallel arbeiten, weil der Zeitunterschied von einem Knoten zum anderen 
+    weit unter einer Sekunde liegt.
 
-Frage 2:
-    Nein, weil dann mehrere Prozesse versuchen würden, gleichzeitig die selbe Datei
-    anzulegen.
+
+
+Frage 2: Könnte man die Datei timescript.out auch innerhalb des Scriptes 
+         timescript erzeugen? Falls ja: Wie? Falls nein: Warum nicht?
+         
+    Nein, weil dann mehrere Prozesse versuchen würden, gleichzeitig die selbe 
+    Datei anzulegen.
