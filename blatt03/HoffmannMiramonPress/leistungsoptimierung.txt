@@ -110,8 +110,6 @@ Wir nutzen hier für perf ebenfalls die Kompilierung mit -O0.
        0.000000000 seconds sys
 
 
-#TODO:  Erläutern Sie die Bedeutung der einzelnen Statistiken und mögliche 
-        Einflüsse auf die Leistung Ihres Programmes. 
 
 context-switches: 
     Ein context-switch ist der Vorgang, bei dem die Bearbeitung des aktuellen 
