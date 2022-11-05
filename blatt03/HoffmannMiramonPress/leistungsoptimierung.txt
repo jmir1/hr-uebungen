@@ -113,6 +113,35 @@ Wir nutzen hier für perf ebenfalls die Kompilierung mit -O0.
 #TODO:  Erläutern Sie die Bedeutung der einzelnen Statistiken und mögliche 
         Einflüsse auf die Leistung Ihres Programmes. 
 
+context-switches: 
+    Ein context-switch ist der Vorgang, bei dem die Bearbeitung des aktuellen 
+    Prozesses unterbrochen wird und zu einem anderen gewechselt wird. 
+    Dafür muss der Zustand des Prozesses gespeichert und der des neuen wieder-
+    hergestellt werden. Mithilfe von context-switches wird multitasking 
+    ermöglicht, allerdings sind context-switches zeitintensiv, weshalb sich
+    viele context-switches negativ auf die Laufzeit des Programms auswirken 
+    können.
+
+cycles: 
+    Die Anzahl der cycles beschreiben die Anzahl der CPU-Operationen, 
+    die ausgeführt wurden.
+
+instructions: 
+    Die Anzahl der instructions beschreiben die Anzahl der logischen Operationen.
+    Wenn die Anzahl der instructions nahe der Anzahl der cycles liegen, bedeutet
+    das, dass nicht die volle Kapazität der CPU genutzt wurde, denn pro cycle
+    können eigentlich mehrere instructions ausgeführt werden.
+
+branches: 
+    Die Anzahl der branches beschreibt die Anzahl der Code branches, welche
+    beispielsweise durch if-else oder switch cases entstehen.
+
+branch-misses: 
+    Ein branch-miss bezeichnet eine falsche branch prediction.
+    Viele branch-misses sind schlecht für die Leistung des Programmes, da bei
+    richtiger branch prediction zb. memory vorgeladen werden kann und nicht 
+    gewartet werden muss, wenn ein vorhergesagter branch eingeschlagen wird.
+
 
 
 ###############################################################################
@@ -144,7 +173,28 @@ andere Berechnungen ausgeführt werden.
                 ...
 232				Matrix[m1][i][j] = Matrix[m2][i][j] + korrektur;
 
-Jacobi-1:       17.285843 s
+Jacobi-1:       17.280679 s
 Jacobi-2:       75.378576 s
 
 
+
+perf nach Optimierungen:
+
+Performance counter stats for './partdiff-seq 1 2 64 1 2 10240':
+
+         17,344.35 msec task-clock                #    0.999 CPUs utilized
+             1,469      context-switches          #    0.085 K/sec
+                 2      cpu-migrations            #    0.000 K/sec
+             1,132      page-faults               #    0.065 K/sec
+    46,120,245,419      cycles                    #    2.659 GHz                      (83.31%)
+    20,995,872,639      stalled-cycles-frontend   #   45.52% frontend cycles idle     (83.33%)
+     1,079,290,371      stalled-cycles-backend    #    2.34% backend cycles idle      (66.68%)
+    85,598,496,709      instructions              #    1.86  insn per cycle
+                                                  #    0.25  stalled cycles per insn  (83.33%)
+    11,052,216,272      branches                  #  637.223 M/sec                    (83.33%)
+         5,662,951      branch-misses             #    0.05% of all branches          (83.34%)
+
+      17.360749281 seconds time elapsed
+
+      17.344402000 seconds user
+       0.003998000 seconds sys
