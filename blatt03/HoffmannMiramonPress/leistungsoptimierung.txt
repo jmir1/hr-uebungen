@@ -148,9 +148,3 @@ Jacobi-1:       17.285843 s
 Jacobi-2:       75.378576 s
 
 
-
-Weitere Ideen zur Laufzeit-Optimierung, welche aber kaum bis keinen Unterschied 
-gemacht haben:
-    -   Matrizen mit calloc statt malloc allokieren, um 0-Initialisierung
-        in initMatrices nicht zu benötigen
-    -   fabs() statt residuum = (residuum < 0) ? -residuum : residuum;
