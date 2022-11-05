@@ -1,0 +1,84 @@
+Wir bezeichnen die Aufrufe für unsere Vergleichsmessungen wiefolgt:
+
+Jacobi-1:       ./partdiff-seq 1 2 64 1 2 10240
+Jacobi-2:       ./partdiff-seq 1 2 64 2 2 5120
+
+GaussSeidel-1:  ./partdiff-seq 1 1 64 1 2 10240
+GaussSeidel-2:  ./partdiff-seq 1 1 64 2 2 5120
+
+
+
+KEINE OPTIMIERUNG (-O0):
+
+Jacobi-1:       110.718604 s
+Jacobi-2:       133.954952 s
+
+GaussSeidel-1:  102.117214 s
+GaussSeidel-2:  132.186215 s
+
+
+
+###############################################################################
+--------------------------- 1 Compiler-Optimierungen --------------------------
+###############################################################################
+
+OPTIMIERUNG (-O1):
+
+Jacobi-1:       51.276483 s
+Jacobi-2:       88.200447 s
+
+
+OPTIMIERUNG (-O2):
+
+Jacobi-1:       50.189537 s
+Jacobi-2:       80.093677 s
+
+
+OPTIMIERUNG (-O3):
+
+Jacobi-1:       48.059804 s
+Jacobi-2:       79.457755 s
+
+-O3 optimiert am meisten, weshalb die Laufzeit mit -O3 auch am besten ist.
+
+
+(weitere ungetestete und ungeeignete Optimierungen:)
+-Os: optimiert die Größe 
+-Ofast: wie O3, aber ungenauere Berechnungen  
+-Og: wie O1, aber besseres Debugging  
+-Oz: optimiert hauptsächlich die Größe und nicht Zeit
+
+
+
+###############################################################################
+----------------------------------- 2 GPROF -----------------------------------
+###############################################################################
+
+Da das Kompilieren mit -O3 die Struktur des Codes stark verändern kann, 
+und gprof nicht mehr nachverfolgen kann, wo wieviel Zeit aufgewendet wird,
+führen wir gprof mit der originalen Optimierung -O0 aus.
+
+
+srun gprof ./partdiff-seq
+Flat profile:
+
+Each sample counts as 0.01 seconds.
+  %   cumulative   self              self     total
+ time   seconds   seconds    calls   s/call   s/call  name
+ 91.03     86.88    86.88        1    86.88    94.29  calculate
+  7.76     94.29     7.40 2758256640     0.00     0.00  getResiduum
+  1.15     95.39     1.10        1     1.10     1.10  initMatrices
+  0.00     95.39     0.00        4     0.00     0.00  allocateMemory
+  0.00     95.39     0.00        1     0.00     0.00  AskParams
+  0.00     95.39     0.00        1     0.00     0.00  DisplayMatrix
+  0.00     95.39     0.00        1     0.00     0.00  allocateMatrices
+  0.00     95.39     0.00        1     0.00     0.00  displayStatistics
+  0.00     95.39     0.00        1     0.00     0.00  freeMatrices
+  0.00     95.39     0.00        1     0.00     0.00  initVariables
+
+
+Mit gprof sieht man, dass sich das Programm 91% der Zeit in calculate befindet.
+Demnach wissen wir, dass wir hauptsächlich die Funktion calculate ändern bzw.
+optimieren müssen.
+Nach calculate benötigt die Funktion getResiduum mit 7,8% am meisten Zeit. 
+Dies liegt aber daran, dass sie sehr häufig aufgerufen wird (2758256640 mal).
