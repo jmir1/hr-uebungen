@@ -33,12 +33,9 @@ OPTIMIERUNG (-O3):
 Jacobi-1:       48.059804 s
 Jacobi-2:       79.457755 s
 
--O3 optimiert am meisten, weshalb die Laufzeit mit -O3 auch am besten ist.
-
 
 (weitere ungetestete und ungeeignete Optimierungen:)
 -Os: optimiert die Größe 
--Ofast: wie O3, aber ungenauere Berechnungen  
 -Og: wie O1, aber besseres Debugging  
 -Oz: optimiert hauptsächlich die Größe und nicht Zeit
 
@@ -176,23 +173,65 @@ Jacobi-2:       75.378576 s
 
 
 
+WEITERE OPTIMIERUNGEN (-Ofast -flto -march=native):
+
+Jacobi-1:        4.700669 s
+Jacobi-2:       20.918496 s
+
+Diese Compiler Flags wurden nur mit den Code-Optimierungen zusammen getestet,
+weil sie nur dann einen merklichen Effekt hatten.
+
+-Ofast aktiviert einige Funktionen im Compiler, sodass mathematische Operationen
+unsicherer aber schneller werden.
+-flto aktiviert den "link-time optimizer", der das Linken von verschieden Object
+files optimiert.
+-march=native lässt den Compiler Maschinencode mit Anweisungen, die speziell für
+die aktuelle Prozessorarchitektur ausgelegt sind, generieren.
+
+
+getResiduum() und star:
+Wir haben die Logik zur Berechnung von residuum teilweise in calculate()
+verschoben, außerdem haben wir das Vorzeichen von star geändert, sodass für
+das residuum nicht noch ein Mal das Vorzeichen geändert werden muss.
+
+        double getResiduum(struct calculation_arguments *arguments,
+                          int x, int y, double star) {
+            return ((TWO_PI_SQUARE * sin((double)(y)*PI * arguments->h) *
+                        sin((double)(x)*PI * arguments->h) * arguments->h * arguments->h +
+                    star) /
+                4.0);
+        }
+        ...
+        star = Matrix[m2][i - 1][j] + Matrix[m2][i][j - 1] +
+               Matrix[m2][i][j + 1] + Matrix[m2][i + 1][j] -
+               4.0 * Matrix[m2][i][j];
+
+        residuum = (options->inf_func == FUNC_F0) ? star / 4.0 : getResiduum(arguments, i, j, star);
+
+
+Zu diesem Zeitpunkt haben wir die niedrigste Laufzeit erreicht:
+
+Jacobi-1:        4.696323 s
+Jacobi-2:       18.351894 s
+
+
 perf nach Optimierungen:
 
 Performance counter stats for './partdiff-seq 1 2 64 1 2 10240':
 
-         17,344.35 msec task-clock                #    0.999 CPUs utilized
-             1,469      context-switches          #    0.085 K/sec
-                 2      cpu-migrations            #    0.000 K/sec
-             1,132      page-faults               #    0.065 K/sec
-    46,120,245,419      cycles                    #    2.659 GHz                      (83.31%)
-    20,995,872,639      stalled-cycles-frontend   #   45.52% frontend cycles idle     (83.33%)
-     1,079,290,371      stalled-cycles-backend    #    2.34% backend cycles idle      (66.68%)
-    85,598,496,709      instructions              #    1.86  insn per cycle
-                                                  #    0.25  stalled cycles per insn  (83.33%)
-    11,052,216,272      branches                  #  637.223 M/sec                    (83.33%)
-         5,662,951      branch-misses             #    0.05% of all branches          (83.34%)
+          4,731.70 msec task-clock                #    0.999 CPUs utilized          
+               405      context-switches          #    0.086 K/sec                  
+                 4      cpu-migrations            #    0.001 K/sec                  
+             1,138      page-faults               #    0.241 K/sec                  
+    12,543,076,609      cycles                    #    2.651 GHz                      (83.28%)
+     4,160,813,750      stalled-cycles-frontend   #   33.17% frontend cycles idle     (83.24%)
+       911,467,390      stalled-cycles-backend    #    7.27% backend cycles idle      (66.81%)
+    26,433,169,165      instructions              #    2.11  insn per cycle         
+                                                  #    0.16  stalled cycles per insn  (83.37%)
+     1,405,242,086      branches                  #  296.984 M/sec                    (83.36%)
+         5,415,499      branch-misses             #    0.39% of all branches          (83.32%)
 
-      17.360749281 seconds time elapsed
+       4.738306074 seconds time elapsed
 
-      17.344402000 seconds user
-       0.003998000 seconds sys
+       4.733351000 seconds user
+       0.000000000 seconds sys

@@ -150,16 +150,12 @@ static void initMatrices(struct calculation_arguments *arguments,
 /* getResiduum: calculates residuum                                         */
 /* Input: x,y - actual column and row                                       */
 /* ************************************************************************ */
-double getResiduum(struct calculation_arguments *arguments, struct options *options,
+double getResiduum(struct calculation_arguments *arguments,
                    int x, int y, double star) {
-    if (options->inf_func == FUNC_F0) {
-        return ((-star) / 4.0);
-    } else {
-        return ((TWO_PI_SQUARE * sin((double)(y)*PI * arguments->h) *
-                     sin((double)(x)*PI * arguments->h) * arguments->h * arguments->h -
-                 star) /
-                4.0);
-    }
+    return ((TWO_PI_SQUARE * sin((double)(y)*PI * arguments->h) *
+                sin((double)(x)*PI * arguments->h) * arguments->h * arguments->h +
+            star) /
+        4.0);
 }
 
 /* ************************************************************************ */
@@ -192,11 +188,11 @@ static void calculate(struct calculation_arguments *arguments,
         for (i = 1; i < N; i++) {
             /* over all rows */
             for (j = 1; j < N; j++) {
-                star = -Matrix[m2][i - 1][j] - Matrix[m2][i][j - 1] -
-                       Matrix[m2][i][j + 1] - Matrix[m2][i + 1][j] +
+                star = Matrix[m2][i - 1][j] + Matrix[m2][i][j - 1] +
+                       Matrix[m2][i][j + 1] + Matrix[m2][i + 1][j] -
                        4.0 * Matrix[m2][i][j];
 
-                residuum = getResiduum(arguments, options, i, j, star);
+                residuum = (options->inf_func == FUNC_F0) ? star / 4.0 : getResiduum(arguments, i, j, star);
                 korrektur = residuum;
                 Matrix[m1][i][j] = Matrix[m2][i][j] + korrektur;
                 residuum = (residuum < 0) ? -residuum : residuum;
