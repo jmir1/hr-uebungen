@@ -82,3 +82,36 @@ Demnach wissen wir, dass wir hauptsächlich die Funktion calculate ändern bzw.
 optimieren müssen.
 Nach calculate benötigt die Funktion getResiduum mit 7,8% am meisten Zeit. 
 Dies liegt aber daran, dass sie sehr häufig aufgerufen wird (2758256640 mal).
+
+
+
+###############################################################################
+----------------------------------- 3 PERF ------------------------------------
+###############################################################################
+
+Wir nutzen hier für perf ebenfalls die Kompilierung mit -O0.
+
+ Performance counter stats for './partdiff-seq 1 2 64 1 2 10240':
+
+        136,294.90 msec task-clock                #    0.999 CPUs utilized
+            11,512      context-switches          #    0.084 K/sec
+                 1      cpu-migrations            #    0.000 K/sec
+             1,134      page-faults               #    0.008 K/sec
+   362,822,331,164      cycles                    #    2.662 GHz                      (83.35%)
+   158,235,636,390      stalled-cycles-frontend   #   43.61% frontend cycles idle     (83.33%)
+    20,277,967,751      stalled-cycles-backend    #    5.59% backend cycles idle      (66.67%)
+   629,611,362,351      instructions              #    1.74  insn per cycle
+                                                  #    0.25  stalled cycles per insn  (83.35%)
+    52,464,330,840      branches                  #  384.932 M/sec                    (83.33%)
+         9,336,441      branch-misses             #    0.02% of all branches          (83.33%)
+
+     136.399610819 seconds time elapsed
+
+     136.320085000 seconds user
+       0.000000000 seconds sys
+
+
+#TODO: Erläutern Sie die Bedeutung der einzelnen Statistiken und mögliche Einflüsse
+auf die Leistung Ihres Programmes. 
+
+
