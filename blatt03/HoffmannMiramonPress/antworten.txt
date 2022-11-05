@@ -53,20 +53,23 @@
    
     - Benutzerfreundlichkeit
     - Möglichkeit, mit Jobs zu interagieren (löschen, bearbeiten, etc.)
+    - Mehr Informationen in einer Übersicht, zb. Reservierungen
+    - Live-Aktualisierungen der Jobs
 
 
 
 8.  Gibt es eine Möglichkeit, einen bereits abgeschickten Job zu löschen 
     (bevor oder während er läuft)? Wenn ja, wie?
    
-    Mit dem Befehl scancel <job-id>
+    Ja, mit dem Befehl scancel <job-id>
 
 
 
 9.  Können auf dem Cluster mehrere Nutzer oder Jobs gleichzeitig denselben 
     west-Knoten benutzen?
     
-    Nein.
+    Nein. Beim Versuch einen besetzten Knoten zu allokieren, wird der Job
+    gequeued und muss warten bis der Knoten wieder frei wird.
 
 
 
@@ -84,7 +87,10 @@
     - "Backfill": Das gleiche, aber es können Jobs mit geringerer Priorität
       eingeschoben werden, wenn deren Laufzeitbegrenzung so klein ist, dass
       sie Jobs mit höherer Priorität nicht warten lassen werden.
-    Der Cluster benutzt momentan "Backfill".
+
+    Der Cluster benutzt momentan "Backfill". Dies kann man beispielsweise in 
+    der slurm config unter /etc/slurm-llnl/slurm.conf nachlesen:
+    SchedulerType=sched/backfill
 
 
 
@@ -94,6 +100,7 @@
     
     salloc -p west --nodelist=west7
     srun hostname
+
     Alternativ kann man sich per SSH mit dem allokierten Knoten verbinden und 
     dann irgendetwas ausführen.
 
@@ -101,8 +108,9 @@
 
 13. Wie hoch ist das Timeout auf dem Cluster, bis alle Knoten wieder 
     freigegeben werden?
-     
-    6 Stunden
+
+    Mit dem Befehl sinfo kann man sich das TIMELIMIT der jeweiligen Partitionen 
+    einsehen. Das Timeout auf dem Cluster beträgt 6 Stunden.
 
 
 
@@ -119,7 +127,13 @@
 15. Welche unterschiedlichen Partitionen sind auf dem Cluster eingerichtet? 
     Wie kann die zu benutzende Partition geändert werden? 
     
+    Mit dem Befehl sinfo kann man sich eine Liste der Partitionen ausgeben 
+    lassen. Auf dem Cluster befinden sich die Partitionen:
     abu, amd, magny, nehalem, west
+
+    Darüber hinaus kann man sich mit sinfo -a weitere Partitionen anzeigen lassen,
+    welche hidden oder nicht verfügbar für seine user-group ist.  
+
     Mit dem Argument -p kann eine Partition angegeben werden.
 
 
