@@ -16,6 +16,7 @@
 /* *********************************** */
 #include <math.h>
 #include <stdint.h>
+#include <pthread.h>
 
 /* ************* */
 /* Some defines. */
@@ -43,6 +44,17 @@ struct options
 	uint64_t termination;    /* termination condition                          */
 	uint64_t term_iteration; /* terminate if iteration number reached          */
 	double   term_precision; /* terminate if precision reached                 */
+};
+
+struct calc_posix_args
+{ 
+	unsigned int first_i;                             /* first line index to calculate              */
+	unsigned int last_i;                              /* last line index to calculate               */
+	const struct calculation_arguments *arguments;    /* calculation arguments                      */
+	const struct options *opts;                       /* options, see above                         */
+	struct calculation_results *results;              /* calculation results                        */
+	pthread_barrier_t *barrier;						  /* barrier for waiting on other threads       */
+	pthread_mutex_t *mutex;                           /* mutex for safely changing global variables */
 };
 
 /* *************************** */

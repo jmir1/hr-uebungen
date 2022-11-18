@@ -1,0 +1,178 @@
+Ergebnisse für den Aufruf "./partdiff-posix <threads> 2 512 2 2 1024" für 1 bis 12 Threads:"
+
+1 Thread:
+
+Run 1:
+============================================================
+Program for calculation of partial differential equations.  
+============================================================
+(c) Dr. Thomas Ludwig, TU München.
+    Thomas A. Zochler, TU München.
+    Andreas C. Schmidt, TU München.
+============================================================
+
+Berechnungszeit:    416.302063 s 
+Speicherbedarf:     257.126236 MiB
+Berechnungsmethode: Jacobi
+Interlines:         512
+Stoerfunktion:      f(x,y) = 2pi^2*sin(pi*x)sin(pi*y)
+Terminierung:       Anzahl der Iterationen
+Anzahl Iterationen: 1024
+Norm des Fehlers:   2.929037e-07
+
+Matrix:
+ 0.0000 0.0000 0.0000 0.0000 0.0000 0.0000 0.0000 0.0000 0.0000
+ 0.0000 0.0000 0.0001 0.0001 0.0001 0.0001 0.0001 0.0000 0.0000
+ 0.0000 0.0001 0.0001 0.0002 0.0002 0.0002 0.0001 0.0001 0.0000
+ 0.0000 0.0001 0.0002 0.0003 0.0003 0.0003 0.0002 0.0001 0.0000
+ 0.0000 0.0001 0.0002 0.0003 0.0003 0.0003 0.0002 0.0001 0.0000
+ 0.0000 0.0001 0.0002 0.0003 0.0003 0.0003 0.0002 0.0001 0.0000
+ 0.0000 0.0001 0.0001 0.0002 0.0002 0.0002 0.0001 0.0001 0.0000
+ 0.0000 0.0000 0.0001 0.0001 0.0001 0.0001 0.0001 0.0000 0.0000
+ 0.0000 0.0000 0.0000 0.0000 0.0000 0.0000 0.0000 0.0000 0.0000
+
+(Ab hier ist nur noch die Ausgabe angegeben, die sich verändert hat, da der Rest immer identisch war (bis auf die Anzahl der Threads).)
+
+Run 2:
+Berechnungszeit:    416.617962 s 
+
+Run 3:
+Berechnungszeit:    416.584434 s 
+
+Durchschnitt:       416.501486 s
+
+2 Threads:
+Run 1:
+Berechnungszeit:    208.342569 s 
+
+Run 2:
+Berechnungszeit:    208.293545 s 
+
+Run 3:
+Berechnungszeit:    208.148463 s 
+
+Durchschnitt:       208.261526 s
+
+3 Threads:
+Run 1:
+Berechnungszeit:    139.807979 s 
+
+Run 2:
+Berechnungszeit:    139.902926 s 
+
+Run 3:
+Berechnungszeit:    139.892313 s 
+
+Durchschnitt:       139.867739 s
+
+
+4 Threads:
+Run 1:
+Berechnungszeit:    105.079044 s 
+
+Run 2:
+Berechnungszeit:    104.913819 s 
+
+Run 3:
+Berechnungszeit:    104.884831 s 
+
+Durchschnitt:       104.959231 s
+
+5 Threads:
+Run 1:
+Berechnungszeit:    84.278156 s 
+
+Run 2:
+Berechnungszeit:    84.213997 s 
+
+Run 3:
+Berechnungszeit:    84.369924 s 
+
+Durchschnitt:       84.287359 s
+
+6 Threads:
+Run 1:
+Berechnungszeit:    70.405995 s 
+
+Run 2:
+Berechnungszeit:    70.363045 s 
+
+Run 3:
+Berechnungszeit:    70.229320 s 
+
+Durchschnitt:       70.332787 s
+
+7 Threads:
+Run 1:
+Berechnungszeit:    60.328939 s 
+
+Run 2:
+Berechnungszeit:    60.103237 s 
+
+Run 3:
+Berechnungszeit:    60.293339 s 
+
+Durchschnitt:       60.241838 s
+
+8 Threads:
+Run 1:
+Berechnungszeit:    53.149583 s 
+
+Run 2:
+Berechnungszeit:    53.261377 s 
+
+Run 3:
+Berechnungszeit:    53.116119 s 
+
+Durchschnitt:       53.175693 s
+
+
+9 Threads:
+Run 1:
+Berechnungszeit:    48.071239 s 
+
+Run 2:
+Berechnungszeit:    48.023109 s 
+
+Run 3:
+Berechnungszeit:    47.666831 s 
+
+Durchschnitt:       47.920393 s
+
+10 Threads:
+Run 1:
+Berechnungszeit:    42.787119 s 
+
+Run 2:
+Berechnungszeit:    42.792978 s 
+
+Run 3:
+Berechnungszeit:    42.934210 s 
+
+Durchschnitt:       42.838102 s
+
+
+11 Threads:
+Run 1:
+Berechnungszeit:    38.916398 s 
+
+Run 2:
+Berechnungszeit:    39.015541 s 
+
+Run 3:
+Berechnungszeit:    39.095912 s 
+
+Durchschnitt:       39.009283 s
+
+
+12 Threads:
+Run 1:
+Berechnungszeit:    36.834791 s 
+
+Run 2:
+Berechnungszeit:    37.090234 s 
+
+Run 3:
+Berechnungszeit:    36.955061 s 
+
+Durchschnitt:       36.960029 s
