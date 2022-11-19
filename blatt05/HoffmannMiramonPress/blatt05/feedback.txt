@@ -1,0 +1,13 @@
+Die Bearbeitungszeit bitte in ganzen Stunden angeben (aufrunden).
+In den restlichen Zeilen jeweils ein X in der zutreffenden Spalte setzen.
+
+Bearbeitungszeit:  
+Schwierigkeit:     [ ] zu leicht         [ ] genau richtig     [ ] zu schwer
+Lehrreich:         [ ] wenig             [ ] etwas             [ ] sehr
+Verständlichkeit:  [ ] großteils unklar  [ ] teilweise unklar  [ ] verständlich
+
+Kommentar:
+Zeitaufwand zu groß? Wo sind Sie nicht weiter gekommen?
+Was war zu schwer oder unverständlich?
+Was könnten wir verbessern?
+Was hat Ihnen besonders gut gefallen?
