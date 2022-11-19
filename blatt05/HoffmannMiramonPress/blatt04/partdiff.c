@@ -171,7 +171,7 @@ static void initMatrices(struct calculation_arguments *arguments,
 }
 
 /* ************************************************************************ */
-/* calculate: solves the equation                                           */ 
+/* calculate: solves the equation                                           */
 /* basically unchanged from the original version, only some logic for the   */
 /* barrier and mutexes is added                                             */
 /* ************************************************************************ */
@@ -285,7 +285,7 @@ static void calculate_seq(struct calculation_arguments const *arguments,
         }
         if (barrier)
         {
-            pthread_barrier_wait(barrier);  /* wait for all other threads */
+            pthread_barrier_wait(barrier); /* wait for all other threads */
         }
     }
     results->m = m2;
@@ -316,15 +316,15 @@ static void calculate_posix(struct calculation_arguments const *arguments,
 
     unsigned int cells_per_thread = (N - 1) / options->number;
     struct calc_posix_args args[options->number];
-    pthread_barrier_init(&barrier, NULL, options->number);                          /* barrier for waiting at the end of every while loop iteration */
-    pthread_mutex_init(&mutex, NULL);                                               /* mutex for waiting before changing "global" variables         */
+    pthread_barrier_init(&barrier, NULL, options->number); /* barrier for waiting at the end of every while loop iteration */
+    pthread_mutex_init(&mutex, NULL);                      /* mutex for waiting before changing "global" variables         */
 
     /* here we create the necessary arguments and the threads */
     for (unsigned int k = 0; k < options->number; k++)
     {
-        args[k].first_i = k * cells_per_thread + 1;                                 /* first line index to calculate */
+        args[k].first_i = k * cells_per_thread + 1; /* first line index to calculate */
         args[k].last_i = (k == options->number - 1) ? N - 1
-                                                    : (k + 1) * cells_per_thread;   /* last line index to calculate  */
+                                                    : (k + 1) * cells_per_thread; /* last line index to calculate  */
         args[k].arguments = arguments;
         args[k].opts = options;
         args[k].barrier = &barrier;
@@ -335,7 +335,7 @@ static void calculate_posix(struct calculation_arguments const *arguments,
 
     for (unsigned int k = 0; k < options->number; k++)
     {
-        pthread_join(threads[k], NULL);                 /* we wait for the threads to stop */
+        pthread_join(threads[k], NULL); /* we wait for the threads to stop */
     }
 }
 
