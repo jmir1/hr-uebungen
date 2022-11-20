@@ -26,9 +26,7 @@
 #include <math.h>
 #include <malloc.h>
 #include <sys/time.h>
-#ifdef OPENMP
 #include <omp.h>
-#endif
 
 #include "partdiff.h"
 
@@ -181,7 +179,7 @@ calculate_seq(struct calculation_arguments const *arguments,
 			  int last_row,
 			  int first_column,
 			  int last_column,
-			  int elements)
+			  int k /* thread number */)
 {
     int i, j;           /* local variables for loops */
     int m1, m2;         /* used as indices for old and new matrices */
@@ -222,14 +220,14 @@ calculate_seq(struct calculation_arguments const *arguments,
 
         maxResiduum = 0;
 
-        /* over all rows */
-        for (i = 1; i < N; i++)
+        /* over select columns */
+        for (i = first_row; i <= last_row; i++)
         {
-			if (!elements && i < first_row)
+			if (i < first_row)
 			{
 				continue;
 			}
-			else if (!elements && i > last_row)
+			else if (i > last_row)
 			{
 				break;
 			}
@@ -240,17 +238,13 @@ calculate_seq(struct calculation_arguments const *arguments,
                 fpisin_i = fpisin * sin(pih * (double)i);
             }
 
-            /* over all columns */
-            for (j = 1; j < N; j++)
+            /* over select columns */
+            for (j = first_column; j <= last_column; j++)
             {
-				if ((!elements && j < first_column) || (elements && i == first_row && j < first_column))
-				{
-					continue;
-				}
-				else if ((!elements && j > last_column) || (elements && i == last_row && j > last_column))
-				{
-					break;
-				}
+				if (k && (i * (N - 1) + j - 1) % k != 0) /* when using "elements", check if element is for current thread */
+                {
+                    continue;
+                }
                 star = 0.25 * (Matrix_In[i - 1][j] + Matrix_In[i][j - 1] + Matrix_In[i][j + 1] + Matrix_In[i + 1][j]);
 
                 if (options->inf_func == FUNC_FPISIN)
@@ -300,6 +294,7 @@ calculate_seq(struct calculation_arguments const *arguments,
     results->m = m2;
 }
 
+/* we use the OPENMP definition in order to preserve the partdiff-seq Makefile target */
 #ifdef OPENMP
 static void calculate_omp(struct calculation_arguments const *arguments,
                           struct calculation_results *results,
@@ -308,6 +303,7 @@ static void calculate_omp(struct calculation_arguments const *arguments,
     int const N = arguments->N;
     int const n_threads = options->number;
     omp_set_num_threads(n_threads);
+    omp_set_schedule(options->sched_type, options->blocksize); /* set scheduler type (default static, blocksize 1) */
     #pragma omp parallel default(none) shared(arguments, results, N, options, n_threads)
     {
         int k = omp_get_thread_num();
@@ -318,27 +314,7 @@ static void calculate_omp(struct calculation_arguments const *arguments,
 											: (k + 1) * cells_per_thread;
 		calculate_seq(arguments, results, options, 1, N - 1, first_column, last_column, 0); /* go over every row of specific columns */
 		#elif ELEMENT
-		int inner_elements = (N - 2) * (N - 2);
-		int interval = inner_elements / n_threads;
-		int chunksize;
-		int first_index;
-		int rest = inner_elements % n_threads;
-		if (k < rest)
-		{
-			first_index = k * (interval + 1);
-			chunksize = interval + 1;
-		}
-		else
-		{
-			first_index = k * interval + rest;
-			chunksize = interval;
-		}
-		int last_index = first_index + chunksize - 1;
-		int first_row = first_index % (N - 1);
-		int last_row = last_index % (N - 1);
-		int first_column = first_index / (N - 1);
-		int last_column = last_index / (N - 1);
-		calculate_seq(arguments, results, options, first_row, last_row, first_column, last_column, 1); /* go over a range of elements */
+		calculate_seq(arguments, results, options, 1, N- 1, 1, N - 1, k); /* go over every k-th element */
 		#else /* ZEILE */
     	int cells_per_thread = (N - 1) / n_threads;
 		int first_row = k * cells_per_thread + 1;
@@ -418,7 +394,7 @@ displayStatistics(struct calculation_arguments const *arguments, struct calculat
     }
 
     printf("\n");
-	long unsigned int iterations =  /* iterations need to be divided because each thread increments this value */
+	long unsigned int iterations =  /* iterations need to be divided when using threads -because each thread increments this value */
 	#ifdef OPENMP
 	results->stat_iteration / options->number;
 	#else

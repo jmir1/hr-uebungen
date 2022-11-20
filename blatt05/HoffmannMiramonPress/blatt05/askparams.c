@@ -82,262 +82,334 @@
 
 #include "partdiff.h"
 
-static
-void
-usage (char* name)
+static void
+usage(char *name)
 {
-	printf("Usage: %s [num] [method] [lines] [func] [term] [prec/iter]\n", name);
-	printf("\n");
-	printf("  - num:       number of threads (1 .. %d)\n", MAX_THREADS);
-	printf("  - method:    calculation method (1 .. 2)\n");
-	printf("                 %1d: Gauß-Seidel\n", METH_GAUSS_SEIDEL);
-	printf("                 %1d: Jacobi\n",      METH_JACOBI);
-	printf("  - lines:     number of interlines (0 .. %d)\n", MAX_INTERLINES);
-	printf("                 matrixsize = (interlines * 8) + 9\n");
-	printf("  - func:      interference function (1 .. 2)\n");
-	printf("                 %1d: f(x,y) = 0\n",                                    FUNC_F0);
-	printf("                 %1d: f(x,y) = 2 * pi^2 * sin(pi * x) * sin(pi * y)\n", FUNC_FPISIN);
-	printf("  - term:      termination condition ( 1.. 2)\n");
-	printf("                 %1d: sufficient precision\n", TERM_PREC);
-	printf("                 %1d: number of iterations\n", TERM_ITER);
-	printf("  - prec/iter: depending on term:\n");
-	printf("                 precision:  1e-4 .. 1e-20\n");
-	printf("                 iterations:    1 .. %d\n", MAX_ITERATION);
-	printf("\n");
-	printf("Example: %s 1 2 100 1 2 100 \n", name);
+    printf("Usage: %s [num] [method] [lines] [func] [term] [prec/iter]\n", name);
+    printf("\n");
+    printf("  - num:       number of threads (1 .. %d)\n", MAX_THREADS);
+    printf("  - method:    calculation method (1 .. 2)\n");
+    printf("                 %1d: Gauß-Seidel\n", METH_GAUSS_SEIDEL);
+    printf("                 %1d: Jacobi\n", METH_JACOBI);
+    printf("  - lines:     number of interlines (0 .. %d)\n", MAX_INTERLINES);
+    printf("                 matrixsize = (interlines * 8) + 9\n");
+    printf("  - func:      interference function (1 .. 2)\n");
+    printf("                 %1d: f(x,y) = 0\n", FUNC_F0);
+    printf("                 %1d: f(x,y) = 2 * pi^2 * sin(pi * x) * sin(pi * y)\n", FUNC_FPISIN);
+    printf("  - term:      termination condition ( 1.. 2)\n");
+    printf("                 %1d: sufficient precision\n", TERM_PREC);
+    printf("                 %1d: number of iterations\n", TERM_ITER);
+    printf("  - prec/iter: depending on term:\n");
+    printf("                 precision:  1e-4 .. 1e-20\n");
+    printf("                 iterations:    1 .. %d\n", MAX_ITERATION);
+    #ifdef OPENMP
+    printf("  - scheduler   :      scheduler type ( 1.. 3)\n");
+    printf("                         %1d: static\n", SCHEDULER_STATIC);
+    printf("                         %1d: dynamic\n", SCHEDULER_DYNAMIC);
+    printf("                         %1d: guided\n", SCHEDULER_GUIDED);
+    printf("  - blocksize: blocksize for openmp scheduler (1 .. 16)\n");
+    #endif
+    printf("\n");
+    #ifdef OPENMP
+    printf("Example: %s 1 2 100 1 2 100 1 1\n", name);
+    #else
+    printf("Example: %s 1 2 100 1 2 100 \n", name);
+    #endif
 }
 
-static
-int
-check_number (struct options* options)
+static int
+check_number(struct options *options)
 {
-	return (options->number >= 1 && options->number <= MAX_THREADS);
+    return (options->number >= 1 && options->number <= MAX_THREADS);
 }
 
-static
-int
-check_method (struct options* options)
+static int
+check_method(struct options *options)
 {
-	return (options->method == METH_GAUSS_SEIDEL || options->method == METH_JACOBI);
+    return (options->method == METH_GAUSS_SEIDEL || options->method == METH_JACOBI);
 }
 
-static
-int
-check_interlines (struct options* options)
+static int
+check_interlines(struct options *options)
 {
-	return (options->interlines <= MAX_INTERLINES);
+    return (options->interlines <= MAX_INTERLINES);
 }
 
-static
-int
-check_inf_func (struct options* options)
+static int
+check_inf_func(struct options *options)
 {
-	return (options->inf_func == FUNC_F0 || options->inf_func == FUNC_FPISIN);
+    return (options->inf_func == FUNC_F0 || options->inf_func == FUNC_FPISIN);
 }
 
-static
-int
-check_termination (struct options* options)
+static int
+check_termination(struct options *options)
 {
-	return (options->termination == TERM_PREC || options->termination == TERM_ITER);
+    return (options->termination == TERM_PREC || options->termination == TERM_ITER);
 }
 
-static
-int
-check_term_precision (struct options* options)
+static int
+check_term_precision(struct options *options)
 {
-	return (options->term_precision >= 1e-20 && options->term_precision <= 1e-4);
+    return (options->term_precision >= 1e-20 && options->term_precision <= 1e-4);
 }
 
-static
-int
-check_term_iteration (struct options* options)
+static int
+check_term_iteration(struct options *options)
 {
-	return (options->term_iteration >= 1 && options->term_iteration <= MAX_ITERATION);
+    return (options->term_iteration >= 1 && options->term_iteration <= MAX_ITERATION);
 }
 
-void
-askParams (struct options* options, int argc, char** argv)
+#ifdef OPENMP
+static int
+check_scheduler(struct options *options)
 {
-	int ret;
+    return (options->sched_type >= SCHEDULER_STATIC && options->sched_type <= SCHEDULER_GUIDED);
+}
 
-	printf("============================================================\n");
-	printf("Program for calculation of partial differential equations.  \n");
-	printf("============================================================\n");
-	printf("(c) Dr. Thomas Ludwig, TU München.\n");
-	printf("    Thomas A. Zochler, TU München.\n");
-	printf("    Andreas C. Schmidt, TU München.\n");
-	printf("============================================================\n");
-	printf("\n");
+static int
+check_blocksize(struct options *options)
+{
+    return (options->blocksize >= 1 && options->blocksize <= 16);
+}
 
-	if (argc < 2)
-	{
-		/* ----------------------------------------------- */
-		/* Get input: method, interlines, func, precision. */
-		/* ----------------------------------------------- */
-		do
-		{
-			printf("\n");
-			printf("Select number of threads:\n");
-			printf("Number> ");
-			fflush(stdout);
-			ret = scanf("%" SCNu64, &(options->number));
-			while (getchar() != '\n');
-		}
-		while (ret != 1 || !check_number(options));
+#endif
 
-		do
-		{
-			printf("\n");
-			printf("Select calculation method:\n");
-			printf("  %1d: Gauß-Seidel.\n", METH_GAUSS_SEIDEL);
-			printf("  %1d: Jacobi.\n",       METH_JACOBI);
-			printf("method> ");
-			fflush(stdout);
-			ret = scanf("%" SCNu64, &(options->method));
-			while (getchar() != '\n');
-		}
-		while (ret != 1 || !check_method(options));
+void askParams(struct options *options, int argc, char **argv)
+{
+    int ret;
 
-		do
-		{
-			printf("\n");
-			printf("Matrixsize = Interlines*8+9\n");
-			printf("Interlines> ");
-			fflush(stdout);
-			ret = scanf("%" SCNu64, &(options->interlines));
-			while (getchar() != '\n');
-		}
-		while (ret != 1 || !check_interlines(options));
+    printf("============================================================\n");
+    printf("Program for calculation of partial differential equations.  \n");
+    printf("============================================================\n");
+    printf("(c) Dr. Thomas Ludwig, TU München.\n");
+    printf("    Thomas A. Zochler, TU München.\n");
+    printf("    Andreas C. Schmidt, TU München.\n");
+    printf("============================================================\n");
+    printf("\n");
 
-		do
-		{
-			printf("\n");
-			printf("Select interference function:\n");
-			printf(" %1d: f(x,y)=0.\n",                        FUNC_F0);
-			printf(" %1d: f(x,y)=2pi^2*sin(pi*x)sin(pi*y).\n", FUNC_FPISIN);
-			printf("interference function> ");
-			fflush(stdout);
-			ret = scanf("%" SCNu64, &(options->inf_func));
-			while (getchar() != '\n');
-		}
-		while (ret != 1 || !check_inf_func(options));
+    if (argc < 2)
+    {
+        /* -------------------------------------------------------------------------------------------- */
+        /* Get input: method, interlines, func, precision plus scheduler and blocksize if using openmp. */
+        /* -------------------------------------------------------------------------------------------- */
+        do
+        {
+            printf("\n");
+            printf("Select number of threads:\n");
+            printf("Number> ");
+            fflush(stdout);
+            ret = scanf("%" SCNu64, &(options->number));
+            while (getchar() != '\n')
+                ;
+        } while (ret != 1 || !check_number(options));
 
-		do
-		{
-			printf("\n");
-			printf("Select termination:\n");
-			printf(" %1d: sufficient precision.\n",  TERM_PREC);
-			printf(" %1d: number of iterations.\n", TERM_ITER);
-			printf("termination> ");
-			fflush(stdout);
-			ret = scanf("%" SCNu64, &(options->termination));
-			while (getchar() != '\n');
-		}
-		while (ret != 1 || !check_termination(options));
+        do
+        {
+            printf("\n");
+            printf("Select calculation method:\n");
+            printf("  %1d: Gauß-Seidel.\n", METH_GAUSS_SEIDEL);
+            printf("  %1d: Jacobi.\n", METH_JACOBI);
+            printf("method> ");
+            fflush(stdout);
+            ret = scanf("%" SCNu64, &(options->method));
+            while (getchar() != '\n')
+                ;
+        } while (ret != 1 || !check_method(options));
 
-		if (options->termination == TERM_PREC)
-		{
-			do
-			{
-				printf("\n");
-				printf("Select precision:\n");
-				printf("  Range: 1e-4 .. 1e-20.\n");
-				printf("precision> ");
-				fflush(stdout);
-				ret = scanf("%lf", &(options->term_precision));
-				while (getchar() != '\n');
-			}
-			while (ret != 1 || !check_term_precision(options));
+        do
+        {
+            printf("\n");
+            printf("Matrixsize = Interlines*8+9\n");
+            printf("Interlines> ");
+            fflush(stdout);
+            ret = scanf("%" SCNu64, &(options->interlines));
+            while (getchar() != '\n')
+                ;
+        } while (ret != 1 || !check_interlines(options));
 
-			options->term_iteration = MAX_ITERATION;
-		}
-		else if (options->termination == TERM_ITER)
-		{
-			do
-			{
-				printf("\n");
-				printf("Select number of iterations:\n");
-				printf("  Range: 1 .. %d.\n", MAX_ITERATION);
-				printf("Iterations> ");
-				fflush(stdout);
-				ret = scanf("%" SCNu64, &(options->term_iteration));
-				while (getchar() != '\n');
-			}
-			while (ret != 1 || !check_term_iteration(options));
+        do
+        {
+            printf("\n");
+            printf("Select interference function:\n");
+            printf(" %1d: f(x,y)=0.\n", FUNC_F0);
+            printf(" %1d: f(x,y)=2pi^2*sin(pi*x)sin(pi*y).\n", FUNC_FPISIN);
+            printf("interference function> ");
+            fflush(stdout);
+            ret = scanf("%" SCNu64, &(options->inf_func));
+            while (getchar() != '\n')
+                ;
+        } while (ret != 1 || !check_inf_func(options));
 
-			options->term_precision = 0;
-		}
-	}
-	else
-	{
-		if (argc < 7 || strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "-?") == 0)
-		{
-			usage(argv[0]);
-			exit(0);
-		}
+        do
+        {
+            printf("\n");
+            printf("Select termination:\n");
+            printf(" %1d: sufficient precision.\n", TERM_PREC);
+            printf(" %1d: number of iterations.\n", TERM_ITER);
+            printf("termination> ");
+            fflush(stdout);
+            ret = scanf("%" SCNu64, &(options->termination));
+            while (getchar() != '\n')
+                ;
+        } while (ret != 1 || !check_termination(options));
 
-		ret = sscanf(argv[1], "%" SCNu64, &(options->number));
+        if (options->termination == TERM_PREC)
+        {
+            do
+            {
+                printf("\n");
+                printf("Select precision:\n");
+                printf("  Range: 1e-4 .. 1e-20.\n");
+                printf("precision> ");
+                fflush(stdout);
+                ret = scanf("%lf", &(options->term_precision));
+                while (getchar() != '\n')
+                    ;
+            } while (ret != 1 || !check_term_precision(options));
 
-		if (ret != 1 || !check_number(options))
-		{
-			usage(argv[0]);
-			exit(1);
-		}
+            options->term_iteration = MAX_ITERATION;
+        }
 
-		ret = sscanf(argv[2], "%" SCNu64, &(options->method));
+        else if (options->termination == TERM_ITER)
+        {
+            do
+            {
+                printf("\n");
+                printf("Select number of iterations:\n");
+                printf("  Range: 1 .. %d.\n", MAX_ITERATION);
+                printf("Iterations> ");
+                fflush(stdout);
+                ret = scanf("%" SCNu64, &(options->term_iteration));
+                while (getchar() != '\n')
+                    ;
+            } while (ret != 1 || !check_term_iteration(options));
 
-		if (ret != 1 || !check_method(options))
-		{
-			usage(argv[0]);
-			exit(1);
-		}
+            options->term_precision = 0;
+        }
 
-		ret = sscanf(argv[3], "%" SCNu64, &(options->interlines));
+        #ifdef OPENMP
+        do
+        {
+            printf("\n");
+            printf("Select scheduler:\n");
+            printf(" %1d: static.\n", SCHEDULER_STATIC);
+            printf(" %1d: dynamic.\n", SCHEDULER_DYNAMIC);
+            printf(" %1d: guided.\n", SCHEDULER_GUIDED);
+            printf("scheduler> ");
+            fflush(stdout);
+            ret = scanf("%" SCNi32, &(options->sched_type));
+            while (getchar() != '\n')
+                ;
+        } while (ret != 1 || !check_scheduler(options));
 
-		if (ret != 1 || !check_interlines(options))
-		{
-			usage(argv[0]);
-			exit(1);
-		}
+        do
+        {
+            printf("\n");
+            printf("Select blocksize:\n");
+            printf("  Range: 1..16.\n");
+            printf("blocksize> ");
+            fflush(stdout);
+            ret = scanf("%" SCNi32, &(options->blocksize));
+            while (getchar() != '\n')
+                ;
+        } while (ret != 1 || !check_blocksize(options));
+        #endif
+    }
+    else
+    {
+        if (argc < 7 || strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "-?") == 0)
+        {
+            usage(argv[0]);
+            exit(0);
+        }
 
-		ret = sscanf(argv[4], "%" SCNu64, &(options->inf_func));
+        ret = sscanf(argv[1], "%" SCNu64, &(options->number));
 
-		if (ret != 1 || !check_inf_func(options))
-		{
-			usage(argv[0]);
-			exit(1);
-		}
+        if (ret != 1 || !check_number(options))
+        {
+            usage(argv[0]);
+            exit(1);
+        }
 
-		ret = sscanf(argv[5], "%" SCNu64, &(options->termination));
+        ret = sscanf(argv[2], "%" SCNu64, &(options->method));
 
-		if (ret != 1 || !check_termination(options))
-		{
-			usage(argv[0]);
-			exit(1);
-		}
+        if (ret != 1 || !check_method(options))
+        {
+            usage(argv[0]);
+            exit(1);
+        }
 
-		if (options->termination == TERM_PREC)
-		{
-			ret = sscanf(argv[6], "%lf", &(options->term_precision));
-			options->term_iteration = MAX_ITERATION;
+        ret = sscanf(argv[3], "%" SCNu64, &(options->interlines));
 
-			if (ret != 1 || !check_term_precision(options))
-			{
-				usage(argv[0]);
-				exit(1);
-			}
-		}
-		else
-		{
-			ret = sscanf(argv[6], "%" SCNu64, &(options->term_iteration));
-			options->term_precision = 0;
+        if (ret != 1 || !check_interlines(options))
+        {
+            usage(argv[0]);
+            exit(1);
+        }
 
-			if (ret != 1 || !check_term_iteration(options))
-			{
-				usage(argv[0]);
-				exit(1);
-			}
-		}
-	}
+        ret = sscanf(argv[4], "%" SCNu64, &(options->inf_func));
+
+        if (ret != 1 || !check_inf_func(options))
+        {
+            usage(argv[0]);
+            exit(1);
+        }
+
+        ret = sscanf(argv[5], "%" SCNu64, &(options->termination));
+
+        if (ret != 1 || !check_termination(options))
+        {
+            usage(argv[0]);
+            exit(1);
+        }
+
+        if (options->termination == TERM_PREC)
+        {
+            ret = sscanf(argv[6], "%lf", &(options->term_precision));
+            options->term_iteration = MAX_ITERATION;
+
+            if (ret != 1 || !check_term_precision(options))
+            {
+                usage(argv[0]);
+                exit(1);
+            }
+        }
+        else
+        {
+            ret = sscanf(argv[6], "%" SCNu64, &(options->term_iteration));
+            options->term_precision = 0;
+
+            if (ret != 1 || !check_term_iteration(options))
+            {
+                usage(argv[0]);
+                exit(1);
+            }
+        }
+
+        #ifdef OPENMP
+        if (argc == 9 && options->method == METH_JACOBI)
+        {
+            ret = sscanf(argv[7], "%" SCNi32, &(options->sched_type));
+
+            if (ret != 1 || !check_termination(options))
+            {
+                usage(argv[0]);
+                exit(1);
+            }
+
+            ret = sscanf(argv[8], "%" SCNi32, &(options->blocksize));
+
+            if (ret != 1 || !check_termination(options))
+            {
+                usage(argv[0]);
+                exit(1);
+            }
+        }
+        else
+        {
+            options->sched_type = 1;
+            options->blocksize = 1;
+        }
+        #endif
+    }
 }

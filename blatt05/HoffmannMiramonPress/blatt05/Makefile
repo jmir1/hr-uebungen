@@ -20,17 +20,17 @@ all: $(TGTS)
 partdiff-seq: $(OBJS) Makefile
 	$(CC) $(LFLAGS) -o $@ $(OBJS) $(LIBS)
 
-partdiff-openmp: partdiff-openmp.o askparams.o Makefile
-	gcc $(LFLAGS) -fopenmp -DOPENMP -o $@ partdiff-openmp.o askparams.o -lm
+partdiff-openmp: partdiff-openmp.o askparams-openmp.o Makefile
+	gcc $(LFLAGS) -fopenmp -DOPENMP -o $@ partdiff-openmp.o askparams-openmp.o -lm
 
-partdiff-openmp-element: partdiff-openmp-element.o askparams.o Makefile
-	gcc $(LFLAGS) -fopenmp -DOPENMP -DELEMENT -o $@ partdiff-openmp-element.o askparams.o -lm
+partdiff-openmp-element: partdiff-openmp-element.o askparams-openmp.o Makefile
+	gcc $(LFLAGS) -fopenmp -DOPENMP -DELEMENT -o $@ partdiff-openmp-element.o askparams-openmp.o -lm
 
-partdiff-openmp-spalte: partdiff-openmp-spalte.o askparams.o Makefile
-	gcc $(LFLAGS) -fopenmp -DOPENMP -DSPALTE -o $@ partdiff-openmp-spalte.o askparams.o -lm
+partdiff-openmp-spalte: partdiff-openmp-spalte.o askparams-openmp.o Makefile
+	gcc $(LFLAGS) -fopenmp -DOPENMP -DSPALTE -o $@ partdiff-openmp-spalte.o askparams-openmp.o -lm
 
-partdiff-openmp-zeile: partdiff-openmp-zeile.o askparams.o Makefile
-	gcc $(LFLAGS) -fopenmp -DOPENMP -DZEILE -o $@ partdiff-openmp-zeile.o askparams.o -lm
+partdiff-openmp-zeile: partdiff-openmp-zeile.o askparams-openmp.o Makefile
+	gcc $(LFLAGS) -fopenmp -DOPENMP -DZEILE -o $@ partdiff-openmp-zeile.o askparams-openmp.o -lm
 
 
 
@@ -49,6 +49,9 @@ partdiff-openmp-element.o: Makefile
 	$(CC) -c $(CFLAGS) -DOPENMP -DELEMENT -fopenmp -o partdiff-openmp-element.o partdiff.c
 
 askparams.o: askparams.c Makefile
+
+askparams-openmp.o: askparams.c Makefile
+	$(CC) -c $(CFLAGS) -DOPENMP -o askparams-openmp.o askparams.c
 
 clean:
 	$(RM) *.o *~

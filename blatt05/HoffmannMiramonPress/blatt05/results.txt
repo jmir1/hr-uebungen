@@ -1,0 +1,192 @@
+srun ./partdiff-seq 1 2 512 2 2 600:
+Durschschnitt:    351.492016 s 
+
+
+
+srun ./partdiff-openmp 1 2 512 2 2 600:
+Durschschnitt:    345.641313 s 
+
+
+
+srun ./partdiff-openmp 2 2 512 2 2 600:
+Durschschnitt:    173.124618 s 
+
+
+
+srun ./partdiff-openmp 3 2 512 2 2 600:
+Durschschnitt:    116.561442 s 
+
+
+
+srun ./partdiff-openmp 4 2 512 2 2 600:
+Durschschnitt:    87.658333 s 
+
+
+
+srun ./partdiff-openmp 5 2 512 2 2 600:
+Durschschnitt:    70.035102 s 
+
+
+
+srun ./partdiff-openmp 6 2 512 2 2 600:
+Durschschnitt:    58.436104 s 
+
+
+
+srun ./partdiff-openmp 7 2 512 2 2 600:
+Durschschnitt:    49.645952 s 
+
+
+
+srun ./partdiff-openmp 8 2 512 2 2 600:
+Durschschnitt:    43.954207 s 
+
+
+
+srun ./partdiff-openmp 9 2 512 2 2 600:
+Durschschnitt:    39.318641 s 
+
+
+
+srun ./partdiff-openmp 10 2 512 2 2 600:
+Durschschnitt:    35.185961 s 
+
+
+
+srun ./partdiff-openmp 11 2 512 2 2 600:
+Durschschnitt:    31.913228 s 
+
+
+
+srun ./partdiff-openmp 12 2 512 2 2 600:
+Durschschnitt:    30.242965 s 
+
+
+
+srun ./partdiff-openmp 12 2 1024 2 2 6000:
+Durschschnitt:    1268.655782 s 
+
+
+
+srun ./partdiff-openmp 12 2 512 2 2 6000
+Durschschnitt:    302.251697 s 
+
+
+
+srun ./partdiff-openmp 12 2 256 2 2 6000:
+Durschschnitt:    73.616552 s 
+
+
+
+srun ./partdiff-openmp 12 2 128 2 2 6000:
+Durschschnitt:    20.057188 s 
+
+
+
+srun ./partdiff-openmp 12 2 64 2 2 6000:
+Durschschnitt:    4.906459 s 
+
+
+
+srun ./partdiff-openmp 12 2 32 2 2 6000:
+Durschschnitt:    1.727833 s 
+
+
+
+srun ./partdiff-openmp 12 2 16 2 2 6000:
+Durschschnitt:    0.401937 s 
+
+
+
+srun ./partdiff-openmp 12 2 8 2 2 6000:
+Durschschnitt:    0.256728 s 
+
+
+
+srun ./partdiff-openmp 12 2 4 2 2 6000:
+Durschschnitt:    0.081795 s 
+
+
+
+srun ./partdiff-openmp 12 2 2 2 2 6000:
+Durschschnitt:    0.074029 s 
+
+
+
+srun ./partdiff-openmp 12 2 1 2 2 6000:
+Durschschnitt:    0.078766 s 
+
+
+
+srun ./partdiff-openmp-element 12 2 512 2 2 600:
+Durschschnitt:    466.367264 s 
+
+
+
+srun ./partdiff-openmp-zeile 12 2 512 2 2 600:
+Durschschnitt:    30.309984 s 
+
+
+
+srun ./partdiff-openmp-spalte 12 2 512 2 2 600:
+Durschschnitt:    63.214012 s 
+
+
+
+srun ./partdiff-openmp-element 12 2 512 2 2 600 1 2:
+Durschschnitt:    465.606153 s 
+
+
+
+srun ./partdiff-openmp-element 12 2 512 2 2 600 1 4:
+Durschschnitt:    464.022059 s 
+
+
+
+srun ./partdiff-openmp-element 12 2 512 2 2 600 1 16:
+Durschschnitt:    463.252306 s 
+
+
+
+srun ./partdiff-openmp-element 12 2 512 2 2 600 2 1:
+Durschschnitt:    463.532810 s 
+
+
+
+srun ./partdiff-openmp-element 12 2 512 2 2 600 2 4:
+Durschschnitt:    462.842803 s 
+
+
+
+srun ./partdiff-openmp-element 12 2 512 2 2 600 3 1:
+Durschschnitt:    464.787176 s 
+
+
+
+srun ./partdiff-openmp-zeile 12 2 512 2 2 600 1 2:
+Durschschnitt:    30.146841 s 
+
+
+
+srun ./partdiff-openmp-zeile 12 2 512 2 2 600 1 4:
+Durschschnitt:    30.149005 s 
+
+
+
+srun ./partdiff-openmp-zeile 12 2 512 2 2 600 1 16:
+Durschschnitt:    30.181750 s 
+
+
+
+srun ./partdiff-openmp-zeile 12 2 512 2 2 600 2 1:
+Durschschnitt:    30.233440 s 
+
+
+
+srun ./partdiff-openmp-zeile 12 2 512 2 2 600 2 4:
+Durschschnitt:    30.080348 s 
+
+
+
+srun ./partdiff-openmp-zeile 12 2 512 2 2 600 3 1:
+Durschschnitt:    30.332783 s 
