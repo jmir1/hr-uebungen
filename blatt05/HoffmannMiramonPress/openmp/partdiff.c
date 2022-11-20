@@ -173,13 +173,13 @@ initMatrices(struct calculation_arguments *arguments, struct options const *opti
 /* ************************************************************************ */
 static void
 calculate_seq(struct calculation_arguments const *arguments,
-			  struct calculation_results *results,
-			  struct options const *options,
-			  int first_row,
-			  int last_row,
-			  int first_column,
-			  int last_column,
-			  int k /* thread number */)
+              struct calculation_results *results,
+              struct options const *options,
+              int first_row,
+              int last_row,
+              int first_column,
+              int last_column,
+              int k /* thread number */)
 {
     int i, j;           /* local variables for loops */
     int m1, m2;         /* used as indices for old and new matrices */
@@ -223,14 +223,14 @@ calculate_seq(struct calculation_arguments const *arguments,
         /* over select columns */
         for (i = first_row; i <= last_row; i++)
         {
-			if (i < first_row)
-			{
-				continue;
-			}
-			else if (i > last_row)
-			{
-				break;
-			}
+            if (i < first_row)
+            {
+                continue;
+            }
+            else if (i > last_row)
+            {
+                break;
+            }
             double fpisin_i = 0.0;
 
             if (options->inf_func == FUNC_FPISIN)
@@ -241,7 +241,7 @@ calculate_seq(struct calculation_arguments const *arguments,
             /* over select columns */
             for (j = first_column; j <= last_column; j++)
             {
-				if (k && (i * (N - 1) + j - 1) % k != 0) /* when using "elements", check if element is for current thread */
+                if (k && (i * (N - 1) + j - 1) % k != 0) /* when using "elements", check if element is for current thread */
                 {
                     continue;
                 }
@@ -261,9 +261,9 @@ calculate_seq(struct calculation_arguments const *arguments,
                 Matrix_Out[i][j] = star;
             }
         }
-        #ifdef OPENMP
-		#pragma omp critical
-		#endif
+#ifdef OPENMP
+    #pragma omp critical /* critical directive for changing results */
+#endif
         {
             results->stat_iteration++;
             results->stat_precision = (results->stat_precision < maxResiduum) ? maxResiduum : results->stat_precision;
@@ -286,9 +286,9 @@ calculate_seq(struct calculation_arguments const *arguments,
         {
             term_iteration--;
         }
-		#ifdef OPENMP
-        #pragma omp barrier
-		#endif
+#ifdef OPENMP
+#pragma omp barrier /* barrier for syncing threads */
+#endif
     }
 
     results->m = m2;
@@ -304,24 +304,24 @@ static void calculate_omp(struct calculation_arguments const *arguments,
     int const n_threads = options->number;
     omp_set_num_threads(n_threads);
     omp_set_schedule(options->sched_type, options->blocksize); /* set scheduler type (default static, blocksize 1) */
-    #pragma omp parallel default(none) shared(arguments, results, N, options, n_threads)
+#pragma omp parallel default(none) shared(arguments, results, N, options, n_threads)
     {
         int k = omp_get_thread_num();
-		#ifdef SPALTE
-    	int cells_per_thread = (N - 1) / n_threads;
-		int first_column = k * cells_per_thread + 1;
-		int last_column = (k == n_threads - 1) ? N - 1
-											: (k + 1) * cells_per_thread;
-		calculate_seq(arguments, results, options, 1, N - 1, first_column, last_column, 0); /* go over every row of specific columns */
-		#elif ELEMENT
-		calculate_seq(arguments, results, options, 1, N- 1, 1, N - 1, k); /* go over every k-th element */
-		#else /* ZEILE */
-    	int cells_per_thread = (N - 1) / n_threads;
-		int first_row = k * cells_per_thread + 1;
-		int last_row = (k == n_threads - 1) ? N - 1
-											: (k + 1) * cells_per_thread;
-		calculate_seq(arguments, results, options, first_row, last_row, 1, N - 1, 0); /* go over every column of specific rows */
-		#endif
+#ifdef SPALTE
+        int cells_per_thread = (N - 1) / n_threads;
+        int first_column = k * cells_per_thread + 1;
+        int last_column = (k == n_threads - 1) ? N - 1
+                                               : (k + 1) * cells_per_thread;
+        calculate_seq(arguments, results, options, 1, N - 1, first_column, last_column, 0); /* go over every row of specific columns */
+#elif ELEMENT
+        calculate_seq(arguments, results, options, 1, N - 1, 1, N - 1, k); /* go over every k-th element */
+#else /* ZEILE */
+        int cells_per_thread = (N - 1) / n_threads;
+        int first_row = k * cells_per_thread + 1;
+        int last_row = (k == n_threads - 1) ? N - 1
+                                            : (k + 1) * cells_per_thread;
+        calculate_seq(arguments, results, options, first_row, last_row, 1, N - 1, 0); /* go over every column of specific rows */
+#endif
     }
 }
 #endif
@@ -330,20 +330,20 @@ static void calculate(struct calculation_arguments const *arguments,
                       struct calculation_results *results,
                       struct options const *options)
 {
-	#ifdef OPENMP
+#ifdef OPENMP
     /* when using Gauss-Seidel or 1 thread, we still use the sequential version without openmp. */
     if (options->number == 1 || options->method == METH_GAUSS_SEIDEL)
     {
-        calculate_seq(arguments, results, options, 1, arguments->N - 1, 1, arguments-> N - 1, 0);
+        calculate_seq(arguments, results, options, 1, arguments->N - 1, 1, arguments->N - 1, 0);
     }
     /* otherwise, use the parallel version */
     else
     {
         calculate_omp(arguments, results, options);
     }
-	#else
-	calculate_seq(arguments, results, options, 1, arguments->N - 1, 1, arguments-> N - 1, 0);
-	#endif
+#else
+    calculate_seq(arguments, results, options, 1, arguments->N - 1, 1, arguments->N - 1, 0);
+#endif
 }
 
 /* ************************************************************************ */
@@ -394,12 +394,12 @@ displayStatistics(struct calculation_arguments const *arguments, struct calculat
     }
 
     printf("\n");
-	long unsigned int iterations =  /* iterations need to be divided when using threads -because each thread increments this value */
-	#ifdef OPENMP
-	results->stat_iteration / options->number;
-	#else
-	results->stat_iteration;
-	#endif
+    long unsigned int iterations = /* iterations need to be divided when using threads -because each thread increments this value */
+#ifdef OPENMP
+        results->stat_iteration / options->number;
+#else
+        results->stat_iteration;
+#endif
     printf("Anzahl Iterationen: %" PRIu64 "\n", iterations);
     printf("Norm des Fehlers:   %e\n", results->stat_precision);
     printf("\n");

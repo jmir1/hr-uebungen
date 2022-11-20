@@ -49,10 +49,10 @@ struct options
     uint64_t termination;    /* termination condition                          */
     uint64_t term_iteration; /* terminate if iteration number reached          */
     double term_precision;   /* terminate if precision reached                 */
-    #ifdef OPENMP
+#ifdef OPENMP
     int sched_type; /* scheduler type for openmp                      */
-    int blocksize;          /* block size for openmp scheduler                */
-    #endif
+    int blocksize;  /* block size for openmp scheduler                */
+#endif
 };
 
 /* *************************** */

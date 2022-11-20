@@ -102,19 +102,19 @@ usage(char *name)
     printf("  - prec/iter: depending on term:\n");
     printf("                 precision:  1e-4 .. 1e-20\n");
     printf("                 iterations:    1 .. %d\n", MAX_ITERATION);
-    #ifdef OPENMP
+#ifdef OPENMP
     printf("  - scheduler   :      scheduler type ( 1.. 3)\n");
     printf("                         %1d: static\n", SCHEDULER_STATIC);
     printf("                         %1d: dynamic\n", SCHEDULER_DYNAMIC);
     printf("                         %1d: guided\n", SCHEDULER_GUIDED);
     printf("  - blocksize: blocksize for openmp scheduler (1 .. 16)\n");
-    #endif
+#endif
     printf("\n");
-    #ifdef OPENMP
+#ifdef OPENMP
     printf("Example: %s 1 2 100 1 2 100 1 1\n", name);
-    #else
+#else
     printf("Example: %s 1 2 100 1 2 100 \n", name);
-    #endif
+#endif
 }
 
 static int
@@ -287,7 +287,7 @@ void askParams(struct options *options, int argc, char **argv)
             options->term_precision = 0;
         }
 
-        #ifdef OPENMP
+#ifdef OPENMP
         do
         {
             printf("\n");
@@ -313,7 +313,7 @@ void askParams(struct options *options, int argc, char **argv)
             while (getchar() != '\n')
                 ;
         } while (ret != 1 || !check_blocksize(options));
-        #endif
+#endif
     }
     else
     {
@@ -386,7 +386,7 @@ void askParams(struct options *options, int argc, char **argv)
             }
         }
 
-        #ifdef OPENMP
+#ifdef OPENMP
         if (argc == 9 && options->method == METH_JACOBI)
         {
             ret = sscanf(argv[7], "%" SCNi32, &(options->sched_type));
@@ -410,6 +410,6 @@ void askParams(struct options *options, int argc, char **argv)
             options->sched_type = 1;
             options->blocksize = 1;
         }
-        #endif
+#endif
     }
 }
