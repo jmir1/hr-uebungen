@@ -1,6 +1,7 @@
 #define _DEFAULT_SOURCE
 
 #include <mpi.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
@@ -29,8 +30,8 @@ int main(int argc, char **argv) {
     int p_rank;
     int p_num;
     int micro_sec;
-    int min_micro_sec = 1000000;
-    int max_micro_sec = 0;
+    int min_micro_sec;
+    int max_micro_sec;
     char output[80];
 
     // Initialize the MPI environment
@@ -40,9 +41,9 @@ int main(int argc, char **argv) {
     // Get the number of processes
     MPI_Comm_size(MPI_COMM_WORLD, &p_num);
 
-    int all_micro_sec[p_num];
+    bool is_last_rank = p_rank == p_num - 1;
 
-    if (p_rank == p_num - 1) {
+    if (is_last_rank) {
         get_output(output, p_rank, &micro_sec);
         if (p_num == 1) {
             // Print own output if the last process is the only existing process
@@ -66,17 +67,19 @@ int main(int argc, char **argv) {
         MPI_Send(output, 80, MPI_CHAR, p_num - 1, 0, MPI_COMM_WORLD);
     }
 
-    MPI_Gather(&micro_sec, 1, MPI_INT, &all_micro_sec, 1, MPI_INT, p_num - 1,
+    if (is_last_rank) {
+        micro_sec = 1000000;
+    }
+    MPI_Reduce(&micro_sec, &min_micro_sec, 1, MPI_INT, MPI_MIN, p_num - 1,
                MPI_COMM_WORLD);
 
-    if (p_rank == p_num - 1 && p_num != 1) {
-        for (int p = 0; p < p_num - 1; p++) {
-            if (all_micro_sec[p] < min_micro_sec) {
-                min_micro_sec = all_micro_sec[p];
-            } else if (all_micro_sec[p] > max_micro_sec) {
-                max_micro_sec = all_micro_sec[p];
-            }
-        }
+    if (is_last_rank) {
+        micro_sec = 0;
+    }
+    MPI_Reduce(&micro_sec, &max_micro_sec, 1, MPI_INT, MPI_MAX, p_num - 1,
+               MPI_COMM_WORLD);
+
+    if (is_last_rank) {
         printf("Kleinster MS-Anteil: %d\n", min_micro_sec);
         printf("Größte Differenz: %d\n", max_micro_sec - min_micro_sec);
     }
