@@ -7,6 +7,7 @@
 #include <time.h>
 #include <unistd.h>
 
+// This function generates the hostname + timestamp output for a process
 void get_output(char *output, int p_rank, int *micro_sec) {
 
     struct timeval tv;
@@ -42,6 +43,7 @@ int main(int argc, char **argv) {
 
     int all_micro_sec[p_num];
 
+    // Process with last rank (n-1)
     if (p_rank == p_num - 1) {
         get_output(output, p_rank, &micro_sec);
         if (p_num == 1) {
@@ -66,10 +68,15 @@ int main(int argc, char **argv) {
         MPI_Send(output, 80, MPI_CHAR, p_num - 1, 0, MPI_COMM_WORLD);
     }
 
+    // Gather all microseconds from all processes
     MPI_Gather(&micro_sec, 1, MPI_INT, &all_micro_sec, 1, MPI_INT, p_num - 1,
                MPI_COMM_WORLD);
 
-    if (p_rank == p_num - 1 && p_num > 2) {
+    // Get the smallest microsecond and biggest difference if there are more than 1
+    // process
+    if (p_rank == p_num - 1 && p_num > 1) {
+        // Find the minimum and maximum of all microseconds excluding the microsecond of
+        // the process with last rank
         for (int p = 0; p < p_num - 1; p++) {
             if (all_micro_sec[p] < min_micro_sec) {
                 min_micro_sec = all_micro_sec[p];
@@ -158,9 +165,6 @@ int main(int argc, char **argv) {
             for (int p = 0; p < p_num - 1; p++) {
                 // Recieve and print the output of the processes with ranks 0 to n-2
                 MPI_Recv(output, 80, MPI_CHAR, p, 0, MPI_COMM_WORLD, &status);
-                // We use fprintf instead of printf because of following issue:
-                //
-https://stackoverflow.com/questions/42743100/mpi-barrier-doesnt-seem-to-work-reordering-printf-stdout-messages
                 fprintf(stdout, "%s\n", output);
             }
         }
@@ -173,19 +177,23 @@ https://stackoverflow.com/questions/42743100/mpi-barrier-doesnt-seem-to-work-reo
         MPI_Send(output, 80, MPI_CHAR, p_num - 1, 0, MPI_COMM_WORLD);
     }
 
+    // Set micro_sec of the process with last rank on maximum value, so it wouldn't be
+    // detected as the minimum microsecond
     if (is_last_rank) {
         micro_sec = 1000000;
     }
     MPI_Reduce(&micro_sec, &min_micro_sec, 1, MPI_INT, MPI_MIN, p_num - 1,
                MPI_COMM_WORLD);
 
+    // Set micro_sec of the process with last rank on minimum value, so it wouldn't be
+    // detected as the maximum microsecond
     if (is_last_rank) {
         micro_sec = 0;
     }
     MPI_Reduce(&micro_sec, &max_micro_sec, 1, MPI_INT, MPI_MAX, p_num - 1,
                MPI_COMM_WORLD);
 
-    if (is_last_rank) {
+    if (is_last_rank && p_num > 1) {
         printf("Kleinster MS-Anteil: %d\n", min_micro_sec);
         printf("Größte Differenz: %d\n", max_micro_sec - min_micro_sec);
     }
