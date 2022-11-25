@@ -69,11 +69,12 @@ int main(int argc, char **argv) {
     MPI_Gather(&micro_sec, 1, MPI_INT, &all_micro_sec, 1, MPI_INT, p_num - 1,
                MPI_COMM_WORLD);
 
-    if (p_rank == p_num - 1 && p_num != 1) {
+    if (p_rank == p_num - 1 && p_num > 2) {
         for (int p = 0; p < p_num - 1; p++) {
             if (all_micro_sec[p] < min_micro_sec) {
                 min_micro_sec = all_micro_sec[p];
-            } else if (all_micro_sec[p] > max_micro_sec) {
+            }
+            if (all_micro_sec[p] > max_micro_sec) {
                 max_micro_sec = all_micro_sec[p];
             }
         }
