@@ -26,9 +26,8 @@ int get_chunk_size(int rank, int remainder, int quotient) {
     }
 }
 
-int circle(int *buf, int rank, int nprocs, int chunk_size, int remainder, int quotient,
-           int target) {
-    int iteration = 0;
+int circle(int *buf, int rank, int nprocs, int *chunk_size, int remainder, int quotient,
+           int target, int *iteration) {
     int start = 0;
     int end = remainder - 1;
     int abort;
@@ -46,33 +45,34 @@ int circle(int *buf, int rank, int nprocs, int chunk_size, int remainder, int qu
         }
 
         MPI_Request request;
-        MPI_Issend(buf, chunk_size, MPI_INT, next, 0, MPI_COMM_WORLD, &request);
+        MPI_Issend(buf, *chunk_size, MPI_INT, next, 0, MPI_COMM_WORLD, &request);
         fflush(stdout);
         MPI_Status status;
 
         if (remainder != 0) {
             if (end >= nprocs) {
                 if (rank >= start || rank <= end % nprocs) {
-                    chunk_size = quotient + 1;
+                    *chunk_size = quotient + 1;
                 } else {
-                    chunk_size = quotient;
+                    *chunk_size = quotient;
                 }
             } else {
                 if (rank >= start && rank <= end) {
-                    chunk_size = quotient + 1;
+                    *chunk_size = quotient + 1;
                 } else {
-                    chunk_size = quotient;
+                    *chunk_size = quotient;
                 }
             }
         } else {
-            chunk_size = quotient;
+            *chunk_size = quotient;
         }
-        // fprintf(stdout, "\n%d: rank: %d, chunk_size: %d, (%d-%d)\n", iteration, rank,
+        // fprintf(stdout, "\n%d: rank: %d, chunk_size: %d, (%d-%d)\n", *iteration,
+        // rank,
         //         chunk_size, start, end);
-        MPI_Recv(buf, chunk_size, MPI_INT, previous, 0, MPI_COMM_WORLD, &status);
+        MPI_Recv(buf, *chunk_size, MPI_INT, previous, 0, MPI_COMM_WORLD, &status);
         MPI_Wait(&request, &status);
         // fprintf(stdout, "\n%d: rank: %d, buf[0]: %d, chunk_size: %d, (%d-%d)\n",
-        //         iteration, rank, buf[0], proc_chunk_size, start, end);
+        //         *iteration, rank, buf[0], proc_chunk_size, start, end);
         if (rank == nprocs - 1) {
             if (target == buf[0]) {
                 abort = 1;
@@ -86,31 +86,23 @@ int circle(int *buf, int rank, int nprocs, int chunk_size, int remainder, int qu
             break;
         }
 
-        iteration += 1;
-        sleep(1);
+        *iteration += 1;
     }
-    printf("\nTARGET: %d\n", target);
-    printf("\nITERATION: %d\n", iteration);
-
     return 0;
 }
 
 int target_communication(int rank, int nprocs, int *buf) {
+    int target = -1;
     if (rank == 0) {
         MPI_Ssend(buf, 1, MPI_INT, nprocs - 1, 0, MPI_COMM_WORLD);
+        target = buf[0];
     } else if (rank == nprocs - 1) {
         MPI_Status status;
         MPI_Recv(buf, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &status);
-        int target = *buf;
-        printf("\nTARGET: %d\n", target);
-
-        MPI_Barrier(MPI_COMM_WORLD);
-        sleep(0);
-
-        return target;
+        target = *buf;
     }
     MPI_Barrier(MPI_COMM_WORLD);
-    sleep(0);
+    return target;
 }
 
 void print_array(int N, int rank, int nprocs, int chunk_size, int alloc_size, int *buf,
@@ -123,6 +115,51 @@ void print_array(int N, int rank, int nprocs, int chunk_size, int alloc_size, in
         MPI_Status status;
         for (int p = 1; p < nprocs; p++) {
             int proc_chunk_size = get_chunk_size(p, remainder, quotient);
+
+            int proc_buf[proc_chunk_size];
+
+            MPI_Recv(proc_buf, proc_chunk_size, MPI_INT, p, 0, MPI_COMM_WORLD, &status);
+            for (int i = 0; i < proc_chunk_size; i++) {
+                printf("rank %d: %d\n", p, proc_buf[i]);
+            }
+        }
+
+    } else {
+        MPI_Ssend(buf, chunk_size, MPI_INT, 0, 0, MPI_COMM_WORLD);
+    }
+}
+
+void print_array2(int N, int rank, int nprocs, int chunk_size, int alloc_size, int *buf,
+                  int quotient, int remainder, int iteration) {
+    if (rank == 0) {
+        for (int i = 0; i < chunk_size; i++) {
+            printf("rank %d: %d\n", rank, buf[i]);
+        }
+
+        MPI_Status status;
+        for (int p = 1; p < nprocs; p++) {
+            int proc_chunk_size;
+
+            int start = 0 + iteration + 1;
+            int end = remainder + iteration;
+            if (remainder != 0) {
+                if (end >= nprocs) {
+                    if (p >= start || p <= end % nprocs) {
+                        proc_chunk_size = quotient + 1;
+                    } else {
+                        proc_chunk_size = quotient;
+                    }
+                } else {
+                    if (p >= start && p <= end) {
+                        proc_chunk_size = quotient + 1;
+                    } else {
+                        proc_chunk_size = quotient;
+                    }
+                }
+            } else {
+                proc_chunk_size = quotient;
+            }
+
             int proc_buf[proc_chunk_size];
 
             MPI_Recv(proc_buf, proc_chunk_size, MPI_INT, p, 0, MPI_COMM_WORLD, &status);
@@ -145,6 +182,7 @@ int main(int argc, char **argv) {
     int alloc_size;
     int chunk_size;
     int target;
+    int iteration = 0;
 
     if (argc < 2) {
         printf("Arguments error!\nPlease specify a buffer size.\n");
@@ -154,18 +192,19 @@ int main(int argc, char **argv) {
     // Array length
     N = atoi(argv[1]);
 
-    if (nprocs > N) {
-        // TODO
-        printf("Array lässt sich nicht auf alle Prozesse aufteilen\n");
-        return EXIT_FAILURE;
-    }
-
     // Initialize the MPI environment
     MPI_Init(&argc, &argv);
     // Get the rank of the process
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     // Get the number of processes
     MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
+
+    if (nprocs > N) {
+        // TODO
+        printf("Array mit Größe %d lässt sich nicht auf alle Prozesse (%d) aufteilen\n",
+               N, nprocs);
+        return EXIT_FAILURE;
+    }
 
     int quotient = N / nprocs;
     int remainder = N % nprocs;
@@ -187,12 +226,23 @@ int main(int argc, char **argv) {
     }
     print_array(N, rank, nprocs, chunk_size, alloc_size, buf, quotient, remainder);
 
-    ret = circle(buf, rank, nprocs, chunk_size, remainder, quotient, target);
+    ret =
+        circle(buf, rank, nprocs, &chunk_size, remainder, quotient, target, &iteration);
 
     if (rank == 0) {
         printf("\nAFTER\n");
     }
-    print_array(N, rank, nprocs, chunk_size, alloc_size, buf, quotient, remainder);
+    print_array2(N, rank, nprocs, chunk_size, alloc_size, buf, quotient, remainder,
+                 iteration);
+
+    if (rank == 0) {
+        printf("\nTARGET: %d\n", target);
+        printf("ITERATION: %d\n", iteration);
+    }
 
     return EXIT_SUCCESS;
 }
+
+// TODO: 1 process
+// TODO: nprocs > N
+// TODO: nprocs == N
