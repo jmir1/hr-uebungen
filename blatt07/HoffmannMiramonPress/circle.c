@@ -15,6 +15,184 @@ int *init(int rank, int alloc_size, int chunk_size) {
         buf[i] = rand() % 25;
     }
 
+    // Mark the unused space in the buffer via -1
+    if (chunk_size < alloc_size) {
+        buf[alloc_size - 1] = -1;
+    }
+
+    return buf;
+}
+
+int circle(int *buf, int rank, int nprocs, int alloc_size, int target, int *iteration) {
+    int abort;
+
+    while (1) {
+        int next = rank + 1;
+        int previous = rank - 1;
+
+        if (rank == nprocs - 1) {
+            next = 0;
+        } else if (rank == 0) {
+            previous = nprocs - 1;
+        }
+
+        MPI_Request request;
+        MPI_Issend(buf, alloc_size, MPI_INT, next, 0, MPI_COMM_WORLD, &request);
+        fflush(stdout);
+        MPI_Status status;
+
+        MPI_Recv(buf, alloc_size, MPI_INT, previous, 0, MPI_COMM_WORLD, &status);
+        MPI_Wait(&request, &status);
+
+        if (rank == nprocs - 1) {
+            if (target == buf[0]) {
+                abort = 1;
+            } else {
+                abort = 0;
+            }
+        }
+
+        MPI_Bcast(&abort, 1, MPI_INT, nprocs - 1, MPI_COMM_WORLD);
+        if (abort == 1) {
+            break;
+        }
+
+        *iteration += 1;
+    }
+    return 0;
+}
+
+void target_communication(int rank, int nprocs, int *buf, int *target) {
+    if (rank == 0) {
+        MPI_Ssend(buf, 1, MPI_INT, nprocs - 1, 0, MPI_COMM_WORLD);
+        *target = buf[0];
+    } else if (rank == nprocs - 1) {
+        MPI_Status status;
+        MPI_Recv(buf, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &status);
+        *target = *buf;
+    }
+    MPI_Barrier(MPI_COMM_WORLD);
+}
+
+void print_array(int rank, int nprocs, int alloc_size, int *buf) {
+    if (rank == 0) {
+        for (int i = 0; i < alloc_size; i++) {
+            // Don't print surplus values in the buffer.
+            if (buf[i] == -1) {
+                continue;
+            }
+            printf("rank %d: %d\n", rank, buf[i]);
+        }
+
+        MPI_Status status;
+        for (int p = 1; p < nprocs; p++) {
+            int proc_buf[alloc_size];
+
+            MPI_Recv(proc_buf, alloc_size, MPI_INT, p, 0, MPI_COMM_WORLD, &status);
+            for (int i = 0; i < alloc_size; i++) {
+                // Don't print surplus values in the buffer.
+                if (proc_buf[i] == -1) {
+                    continue;
+                }
+                printf("rank %d: %d\n", p, proc_buf[i]);
+            }
+        }
+
+    } else {
+        MPI_Ssend(buf, alloc_size, MPI_INT, 0, 0, MPI_COMM_WORLD);
+    }
+}
+
+int main(int argc, char **argv) {
+    int N;
+    int rank;
+    int nprocs;
+    int *buf;
+    int alloc_size;
+    int chunk_size;
+    int target;
+    int iteration = 0;
+
+    if (argc < 2) {
+        printf("Arguments error!\nPlease specify a buffer size.\n");
+        return EXIT_FAILURE;
+    }
+
+    // Array length
+    N = atoi(argv[1]);
+
+    // Initialize the MPI environment
+    MPI_Init(&argc, &argv);
+    // Get the rank of the process
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    // Get the number of processes
+    MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
+
+    if (nprocs > N) {
+        // TODO
+        printf("Array mit Größe %d lässt sich nicht auf alle Prozesse (%d) aufteilen\n",
+               N, nprocs);
+        return EXIT_FAILURE;
+    }
+
+    int quotient = N / nprocs;
+    int remainder = N % nprocs;
+
+    alloc_size = quotient + 1;
+    if (rank < remainder) {
+        chunk_size = quotient + 1;
+    } else {
+        chunk_size = quotient;
+    }
+
+    buf = init(rank, alloc_size, chunk_size);
+
+    target_communication(rank, nprocs, buf, &target);
+
+    if (rank == 0) {
+        printf("\nBEFORE\n");
+    }
+    print_array(rank, nprocs, alloc_size, buf);
+
+    circle(buf, rank, nprocs, alloc_size, target, &iteration);
+
+    if (rank == 0) {
+        printf("\nAFTER\n");
+    }
+    print_array(rank, nprocs, alloc_size, buf);
+
+    if (rank == 0) {
+        printf("\nTARGET: %d\n", target);
+        printf("ITERATION: %d\n", iteration);
+    }
+
+    free(buf);
+
+    return EXIT_SUCCESS;
+}
+
+// TODO: 1 process
+// TODO: nprocs > N
+// TODO: nprocs == N
+
+/*
+#include <mpi.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#include <unistd.h>
+
+int *init(int rank, int alloc_size, int chunk_size) {
+
+    int *buf = (int *)malloc(sizeof(int) * alloc_size);
+
+    srand(time(NULL) + rank);
+
+    for (int i = 0; i < chunk_size; i++) {
+        // Do not modify "% 25"
+        buf[i] = rand() % 25;
+    }
+
     return buf;
 }
 
@@ -242,7 +420,4 @@ int main(int argc, char **argv) {
 
     return EXIT_SUCCESS;
 }
-
-// TODO: 1 process
-// TODO: nprocs > N
-// TODO: nprocs == N
+*/
