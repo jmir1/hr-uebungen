@@ -4,10 +4,12 @@
 #include <time.h>
 #include <unistd.h>
 
+// This function initializes the buffer values.
 int *init(int rank, int alloc_size, int chunk_size) {
 
     int *buf = (int *)malloc(sizeof(int) * alloc_size);
 
+    // Add the rank to generate different seeds
     srand(time(NULL) + rank);
 
     for (int i = 0; i < chunk_size; i++) {
@@ -23,6 +25,8 @@ int *init(int rank, int alloc_size, int chunk_size) {
     return buf;
 }
 
+// In this function, a process passes the buffer to its neighboring process until the
+// target value is reached in the process with last rank.
 int circle(int *buf, int rank, int nprocs, int alloc_size, int target, int *iteration) {
     int abort;
 
@@ -62,6 +66,8 @@ int circle(int *buf, int rank, int nprocs, int alloc_size, int target, int *iter
     return 0;
 }
 
+// This function sets the first value of the process with rank 0 as the target value
+// and sends it to the process with last rank.
 void target_communication(int rank, int nprocs, int *buf, int *target) {
     if (rank == 0) {
         MPI_Ssend(buf, 1, MPI_INT, nprocs - 1, 0, MPI_COMM_WORLD);
@@ -74,6 +80,7 @@ void target_communication(int rank, int nprocs, int *buf, int *target) {
     MPI_Barrier(MPI_COMM_WORLD);
 }
 
+// This function prints the buffer of every process in order of its ranks.
 void print_array(int rank, int nprocs, int alloc_size, int *buf) {
     if (rank == 0) {
         for (int i = 0; i < alloc_size; i++) {
@@ -108,8 +115,8 @@ int main(int argc, char **argv) {
     int rank;
     int nprocs;
     int *buf;
-    int alloc_size;
-    int chunk_size;
+    int alloc_size; // size of allocated memory
+    int chunk_size; // size of relevant memory
     int target;
     int iteration = 0;
 
@@ -138,10 +145,16 @@ int main(int argc, char **argv) {
     int quotient = N / nprocs;
     int remainder = N % nprocs;
 
-    alloc_size = quotient + 1;
-    if (rank < remainder) {
-        chunk_size = quotient + 1;
+    // Set alloc and chunk size depending on whether the array can be split evenly.
+    if (remainder != 0) {
+        alloc_size = quotient + 1;
+        if (rank < remainder) {
+            chunk_size = quotient + 1;
+        } else {
+            chunk_size = quotient;
+        }
     } else {
+        alloc_size = quotient;
         chunk_size = quotient;
     }
 
@@ -417,6 +430,8 @@ int main(int argc, char **argv) {
         printf("\nTARGET: %d\n", target);
         printf("ITERATION: %d\n", iteration);
     }
+
+    free(buf);
 
     return EXIT_SUCCESS;
 }
