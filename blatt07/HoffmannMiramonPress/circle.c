@@ -17,8 +17,10 @@ int *init(int rank, int alloc_size, int chunk_size) {
         buf[i] = rand() % 25;
     }
 
-    // Mark the unused space in the buffer via -1
-    if (chunk_size < alloc_size) {
+    // Mark unused space in the buffer via -1 or -2 if the process has no buffer.
+    if (chunk_size == 0) {
+        buf[alloc_size - 1] = -2;
+    } else if (chunk_size < alloc_size) {
         buf[alloc_size - 1] = -1;
     }
 
@@ -74,8 +76,7 @@ void target_communication(int rank, int nprocs, int *buf, int *target) {
         *target = buf[0];
     } else if (rank == nprocs - 1) {
         MPI_Status status;
-        MPI_Recv(buf, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &status);
-        *target = *buf;
+        MPI_Recv(target, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &status);
     }
     MPI_Barrier(MPI_COMM_WORLD);
 }
@@ -99,6 +100,11 @@ void print_array(int rank, int nprocs, int alloc_size, int *buf) {
             for (int i = 0; i < alloc_size; i++) {
                 // Don't print surplus values in the buffer.
                 if (proc_buf[i] == -1) {
+                    continue;
+                }
+                // Print placeholder for processes without any buffer.
+                if (proc_buf[i] == -2) {
+                    printf("rank %d: %c\n", p, '-');
                     continue;
                 }
                 printf("rank %d: %d\n", p, proc_buf[i]);
@@ -135,27 +141,34 @@ int main(int argc, char **argv) {
     // Get the number of processes
     MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
 
-    if (nprocs > N) {
-        // TODO
-        printf("Array mit Größe %d lässt sich nicht auf alle Prozesse (%d) aufteilen\n",
-               N, nprocs);
-        return EXIT_FAILURE;
-    }
-
     int quotient = N / nprocs;
     int remainder = N % nprocs;
 
-    // Set alloc and chunk size depending on whether the array can be split evenly.
-    if (remainder != 0) {
+    // Set alloc and chunk size depending on whether the array can be split evenly among
+    // the processes.
+    if (nprocs > N) {
+        // There are more processes than array values
+        alloc_size = 1;
+        if (rank < N) {
+            chunk_size = 1;
+        } else {
+            chunk_size = 0;
+        }
+
+    } else if (remainder == 0) {
+        // The array can be split evenly.
+        alloc_size = quotient;
+        chunk_size = quotient;
+
+    } else {
+        // The array can't be split evenly, but there are more processes than array
+        // values.
         alloc_size = quotient + 1;
         if (rank < remainder) {
             chunk_size = quotient + 1;
         } else {
             chunk_size = quotient;
         }
-    } else {
-        alloc_size = quotient;
-        chunk_size = quotient;
     }
 
     buf = init(rank, alloc_size, chunk_size);
@@ -185,8 +198,6 @@ int main(int argc, char **argv) {
 }
 
 // TODO: 1 process
-// TODO: nprocs > N
-// TODO: nprocs == N
 
 /*
 #include <mpi.h>
