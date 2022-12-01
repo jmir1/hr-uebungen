@@ -17,7 +17,7 @@ int *init(int rank, int alloc_size, int chunk_size) {
         buf[i] = rand() % 25;
     }
 
-    // Mark unused space in the buffer via -1 or -2 if the process has no buffer.
+    // Mark unused space in the buffer via -1 or if the process has no buffer via -2.
     if (chunk_size == 0) {
         buf[alloc_size - 1] = -2;
     } else if (chunk_size < alloc_size) {
@@ -141,6 +141,12 @@ int main(int argc, char **argv) {
     // Get the number of processes
     MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
 
+    if (nprocs < 2) {
+        printf("There must be at least 2 processes in order to be able to pass on "
+               "the array values.\n");
+        return EXIT_FAILURE;
+    }
+
     int quotient = N / nprocs;
     int remainder = N % nprocs;
 
@@ -196,8 +202,6 @@ int main(int argc, char **argv) {
 
     return EXIT_SUCCESS;
 }
-
-// TODO: 1 process
 
 /*
 #include <mpi.h>
