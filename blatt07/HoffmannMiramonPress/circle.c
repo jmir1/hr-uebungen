@@ -151,23 +151,13 @@ int main(int argc, char **argv) {
 
     // Set alloc and chunk size depending on whether the array can be split evenly among
     // the processes.
-    if (nprocs > N) {
-        // There are more processes than array values
-        alloc_size = 1;
-        if (rank < N) {
-            chunk_size = 1;
-        } else {
-            chunk_size = 0;
-        }
-
-    } else if (remainder == 0) {
+    if (remainder == 0) {
         // The array can be split evenly.
         alloc_size = quotient;
         chunk_size = quotient;
 
     } else {
-        // The array can't be split evenly, but there are more processes than array
-        // values.
+        // The array can't be split evenly.
         alloc_size = quotient + 1;
         if (rank < remainder) {
             chunk_size = quotient + 1;
