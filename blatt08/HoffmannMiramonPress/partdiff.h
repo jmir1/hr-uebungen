@@ -21,7 +21,7 @@
 /* Some defines. */
 /* ************* */
 #ifndef PI
-#define PI 			3.141592653589793
+#define PI 			        3.141592653589793
 #endif
 #define TWO_PI_SQUARE 		(2 * PI * PI)
 #define MAX_INTERLINES      10240
@@ -29,10 +29,10 @@
 #define MAX_THREADS         1024
 #define METH_GAUSS_SEIDEL 	1
 #define METH_JACOBI 		2
-#define FUNC_F0			1
-#define FUNC_FPISIN		2
-#define TERM_PREC		1
-#define TERM_ITER		2
+#define FUNC_F0			    1
+#define FUNC_FPISIN		    2
+#define TERM_PREC		    1
+#define TERM_ITER		    2
 
 struct options
 {

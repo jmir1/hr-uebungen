@@ -22,11 +22,11 @@
 #include <inttypes.h>
 #include <malloc.h>
 #include <math.h>
+#include <mpi.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
-
 
 #include "partdiff.h"
 
@@ -240,6 +240,157 @@ static void calculate(struct calculation_arguments const *arguments,
 }
 
 /* ************************************************************************ */
+/* calculate: solves the equation with MPI parallelization */
+/* ************************************************************************ */
+static void calculate_MPI(struct calculation_arguments const *arguments,
+                          struct calculation_results *results,
+                          struct options const *options, int rank, int size) {
+    int i, j;           /* local variables for loops */
+    int m1, m2;         /* used as indices for old and new matrices */
+    double star;        /* four times center value minus 4 neigh.b values */
+    double residuum;    /* residuum of current iteration */
+    double maxResiduum; /* maximum residuum value of a slave in iteration */
+
+    int const N = arguments->N;
+    double const h = arguments->h;
+
+    double pih = 0.0;
+    double fpisin = 0.0;
+
+    int term_iteration = options->term_iteration;
+
+    int lines, start, end;
+    int quotient = (N - 1) / size;
+    int remainder = (N - 1) % size;
+
+    if (rank < remainder) {
+        lines = quotient + 1;
+        start = rank * lines + 1;
+    } else {
+        lines = quotient;
+        start = rank * lines + 1 + remainder;
+    }
+    end = start + lines;
+
+    if (start == end) {
+        return;
+    }
+
+    /* initialize m1 and m2 */
+    m1 = 0;
+    m2 = 1;
+
+    if (options->inf_func == FUNC_FPISIN) {
+        pih = PI * h;
+        fpisin = 0.25 * TWO_PI_SQUARE * h * h;
+    }
+
+    while (term_iteration > 0) {
+        double **Matrix_Out = arguments->Matrix[m1];
+        double **Matrix_In = arguments->Matrix[m2];
+
+        maxResiduum = 0;
+
+        /* over all rows */
+        for (i = start; i < end; i++) {
+            double fpisin_i = 0.0;
+
+            if (options->inf_func == FUNC_FPISIN) {
+                fpisin_i = fpisin * sin(pih * (double)i);
+            }
+
+            /* over all columns */
+            for (j = 1; j < N; j++) {
+                star = 0.25 * (Matrix_In[i - 1][j] + Matrix_In[i][j - 1] +
+                               Matrix_In[i][j + 1] + Matrix_In[i + 1][j]);
+
+                if (options->inf_func == FUNC_FPISIN) {
+                    star += fpisin_i * sin(pih * (double)j);
+                }
+
+                if (options->termination == TERM_PREC || term_iteration == 1) {
+                    residuum = Matrix_In[i][j] - star;
+                    residuum = (residuum < 0) ? -residuum : residuum;
+                    maxResiduum = (residuum < maxResiduum) ? maxResiduum : residuum;
+                }
+
+                Matrix_Out[i][j] = star;
+            }
+        }
+
+        int next = rank + 1;
+        int previous = rank - 1;
+
+        MPI_Status status;
+        if (rank == 0) {
+            MPI_Request request_last_row;
+            MPI_Issend(Matrix_Out[end - 1], (N + 1), MPI_DOUBLE, next, 0,
+                       MPI_COMM_WORLD, &request_last_row);
+
+            MPI_Recv(Matrix_Out[end], (N + 1), MPI_DOUBLE, next, 0, MPI_COMM_WORLD,
+                     &status);
+
+            MPI_Wait(&request_last_row, &status);
+
+        } else if (rank == size - 1 || end == N) {
+            MPI_Request request_first_row;
+            MPI_Issend(Matrix_Out[start], (N + 1), MPI_DOUBLE, previous, 0,
+                       MPI_COMM_WORLD, &request_first_row);
+
+            MPI_Recv(Matrix_Out[start - 1], (N + 1), MPI_DOUBLE, previous, 0,
+                     MPI_COMM_WORLD, &status);
+
+            MPI_Wait(&request_first_row, &status);
+
+        } else {
+            // Send first row
+            MPI_Request request_first_row, request_last_row;
+            MPI_Issend(Matrix_Out[start], (N + 1), MPI_DOUBLE, previous, 0,
+                       MPI_COMM_WORLD, &request_first_row);
+            // Send last row
+            MPI_Issend(Matrix_Out[end - 1], (N + 1), MPI_DOUBLE, next, 0,
+                       MPI_COMM_WORLD, &request_last_row);
+
+            MPI_Recv(Matrix_Out[start - 1], (N + 1), MPI_DOUBLE, previous, 0,
+                     MPI_COMM_WORLD, &status);
+            MPI_Recv(Matrix_Out[end], (N + 1), MPI_DOUBLE, next, 0, MPI_COMM_WORLD,
+                     &status);
+
+            MPI_Wait(&request_first_row, &status);
+            MPI_Wait(&request_last_row, &status);
+        }
+
+        /* exchange m1 and m2 */
+        i = m1;
+        m1 = m2;
+        m2 = i;
+
+        double all_maxResiduum;
+        /* check for stopping calculation depending on termination method */
+        if (options->termination == TERM_PREC) {
+            MPI_Allreduce(&maxResiduum, &all_maxResiduum, 1, MPI_DOUBLE, MPI_MAX,
+                          MPI_COMM_WORLD);
+            maxResiduum = all_maxResiduum;
+            if (maxResiduum < options->term_precision) {
+                term_iteration = 0;
+            }
+        } else if (options->termination == TERM_ITER) {
+            term_iteration--;
+            if (term_iteration == 0) {
+                MPI_Allreduce(&maxResiduum, &all_maxResiduum, 1, MPI_DOUBLE, MPI_MAX,
+                              MPI_COMM_WORLD);
+                maxResiduum = all_maxResiduum;
+            }
+        }
+
+        results->stat_iteration++;
+        results->stat_precision = maxResiduum;
+    }
+
+    results->m = m2;
+}
+
+/* ************************************************************************ */
 /*  displayStatistics: displays some statistics about the calculation       */
 /* ************************************************************************ */
 static void displayStatistics(struct calculation_arguments const *arguments,
@@ -325,20 +476,45 @@ int main(int argc, char **argv) {
     struct options options;
     struct calculation_arguments arguments;
     struct calculation_results results;
+    int rank, size;
 
-    askParams(&options, argc, argv);
+    // Initialize the MPI environment
+    MPI_Init(&argc, &argv);
+    // Get the rank of the process
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    // Get the number of processes
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+
+    if (options.method == METH_GAUSS_SEIDEL && rank != 0) {
+        return 0;
+    }
+
+    if (rank == 0) {
+        askParams(&options, argc, argv);
+    }
+
+    MPI_Bcast(&options, sizeof(options), MPI_CHAR, 0, MPI_COMM_WORLD);
 
     initVariables(&arguments, &results, &options);
 
     allocateMatrices(&arguments);
     initMatrices(&arguments, &options);
 
-    gettimeofday(&start_time, NULL);
-    calculate(&arguments, &results, &options);
-    gettimeofday(&comp_time, NULL);
+    if (options.method == METH_JACOBI && size > 1) {
+        gettimeofday(&start_time, NULL);
+        calculate_MPI(&arguments, &results, &options, rank, size);
+        gettimeofday(&comp_time, NULL);
 
-    displayStatistics(&arguments, &results, &options);
-    displayMatrix(&arguments, &results, &options);
+    } else {
+        gettimeofday(&start_time, NULL);
+        calculate(&arguments, &results, &options);
+        gettimeofday(&comp_time, NULL);
+    }
+
+    if (rank == 0) {
+        displayStatistics(&arguments, &results, &options);
+        displayMatrix(&arguments, &results, &options);
+    }
 
     freeMatrices(&arguments);
 
