@@ -244,7 +244,8 @@ static void calculate(struct calculation_arguments const *arguments,
 /* ************************************************************************ */
 static void calculate_MPI(struct calculation_arguments const *arguments,
                           struct calculation_results *results,
-                          struct options const *options, int rank, int size) {
+                          struct options const *options, int rank, int size, int *start,
+                          int *end) {
     int i, j;           /* local variables for loops */
     int m1, m2;         /* used as indices for old and new matrices */
     double star;        /* four times center value minus 4 neigh.b values */
@@ -259,20 +260,20 @@ static void calculate_MPI(struct calculation_arguments const *arguments,
 
     int term_iteration = options->term_iteration;
 
-    int lines, start, end;
+    int lines;
     int quotient = (N - 1) / size;
     int remainder = (N - 1) % size;
 
     if (rank < remainder) {
         lines = quotient + 1;
-        start = rank * lines + 1;
+        *start = rank * lines + 1;
     } else {
         lines = quotient;
-        start = rank * lines + 1 + remainder;
+        *start = rank * lines + 1 + remainder;
     }
-    end = start + lines;
+    *end = *start + lines;
 
-    if (start == end) {
+    if (*start == *end) {
         return;
     }
 
@@ -292,7 +293,7 @@ static void calculate_MPI(struct calculation_arguments const *arguments,
         maxResiduum = 0;
 
         /* over all rows */
-        for (i = start; i < end; i++) {
+        for (i = *start; i < *end; i++) {
             double fpisin_i = 0.0;
 
             if (options->inf_func == FUNC_FPISIN) {
@@ -324,20 +325,20 @@ static void calculate_MPI(struct calculation_arguments const *arguments,
         MPI_Status status;
         if (rank == 0) {
             MPI_Request request_last_row;
-            MPI_Issend(Matrix_Out[end - 1], (N + 1), MPI_DOUBLE, next, 0,
+            MPI_Issend(Matrix_Out[*end - 1], (N + 1), MPI_DOUBLE, next, 0,
                        MPI_COMM_WORLD, &request_last_row);
 
-            MPI_Recv(Matrix_Out[end], (N + 1), MPI_DOUBLE, next, 0, MPI_COMM_WORLD,
+            MPI_Recv(Matrix_Out[*end], (N + 1), MPI_DOUBLE, next, 0, MPI_COMM_WORLD,
                      &status);
 
             MPI_Wait(&request_last_row, &status);
 
-        } else if (rank == size - 1 || end == N) {
+        } else if (rank == size - 1 || *end == N) {
             MPI_Request request_first_row;
-            MPI_Issend(Matrix_Out[start], (N + 1), MPI_DOUBLE, previous, 0,
+            MPI_Issend(Matrix_Out[*start], (N + 1), MPI_DOUBLE, previous, 0,
                        MPI_COMM_WORLD, &request_first_row);
 
-            MPI_Recv(Matrix_Out[start - 1], (N + 1), MPI_DOUBLE, previous, 0,
+            MPI_Recv(Matrix_Out[*start - 1], (N + 1), MPI_DOUBLE, previous, 0,
                      MPI_COMM_WORLD, &status);
 
             MPI_Wait(&request_first_row, &status);
@@ -345,15 +346,15 @@ static void calculate_MPI(struct calculation_arguments const *arguments,
         } else {
             // Send first row
             MPI_Request request_first_row, request_last_row;
-            MPI_Issend(Matrix_Out[start], (N + 1), MPI_DOUBLE, previous, 0,
+            MPI_Issend(Matrix_Out[*start], (N + 1), MPI_DOUBLE, previous, 0,
                        MPI_COMM_WORLD, &request_first_row);
             // Send last row
-            MPI_Issend(Matrix_Out[end - 1], (N + 1), MPI_DOUBLE, next, 0,
+            MPI_Issend(Matrix_Out[*end - 1], (N + 1), MPI_DOUBLE, next, 0,
                        MPI_COMM_WORLD, &request_last_row);
 
-            MPI_Recv(Matrix_Out[start - 1], (N + 1), MPI_DOUBLE, previous, 0,
+            MPI_Recv(Matrix_Out[*start - 1], (N + 1), MPI_DOUBLE, previous, 0,
                      MPI_COMM_WORLD, &status);
-            MPI_Recv(Matrix_Out[end], (N + 1), MPI_DOUBLE, next, 0, MPI_COMM_WORLD,
+            MPI_Recv(Matrix_Out[*end], (N + 1), MPI_DOUBLE, next, 0, MPI_COMM_WORLD,
                      &status);
 
             MPI_Wait(&request_first_row, &status);
@@ -469,6 +470,75 @@ static void displayMatrix(struct calculation_arguments *arguments,
     fflush(stdout);
 }
 
+/**
+ * rank and size are the MPI rank and size, respectively.
+ * from and to denote the global(!) range of lines that this process is responsible for.
+ *
+ * Example with 9 matrix lines and 4 processes:
+ * - rank 0 is responsible for 1-2, rank 1 for 3-4, rank 2 for 5-6 and rank 3 for 7.
+ *   Lines 0 and 8 are not included because they are not calculated.
+ * - Each process stores two halo lines in its matrix (except for ranks 0 and 3 that
+ * only store one).
+ * - For instance: Rank 2 has four lines 0-3 but only calculates 1-2 because 0 and 3 are
+ * halo lines for other processes. It is responsible for (global) lines 5-6.
+ */
+static void displayMatrix_MPI(struct calculation_arguments *arguments,
+                              struct calculation_results *results,
+                              struct options *options, int rank, int size, int start,
+                              int end) {
+    int const elements = 8 * options->interlines + 9;
+
+    int x, y;
+    double **Matrix = arguments->Matrix[results->m];
+    MPI_Status status;
+
+    /* first line belongs to rank 0 */
+    if (rank == 0) {
+        start--;
+        printf("Matrix:\n");
+    }
+
+    for (y = 0; y < 9; y++) {
+        int line = y * (options->interlines + 1);
+
+        if (rank == 0) {
+            /* check whether this line belongs to rank 0 */
+            if (line > end) {
+                /* use the tag to receive the lines in the correct order
+                 * the line is stored in Matrix[0], because we do not need it anymore */
+                MPI_Recv(Matrix[0], elements, MPI_DOUBLE, MPI_ANY_SOURCE, 42 + y,
+                         MPI_COMM_WORLD, &status);
+            }
+        } else {
+            if (line >= start && line <= end) {
+                /* if the line belongs to this process, send it to rank 0
+                 * (line - from + 1) is used to calculate the correct local address */
+                MPI_Send(Matrix[line], elements, MPI_DOUBLE, 0, 42 + y, MPI_COMM_WORLD);
+                // MPI_Send(Matrix[line - start + 1], elements, MPI_DOUBLE, 0, 42 + y,
+                //          MPI_COMM_WORLD);
+            }
+        }
+
+        if (rank == 0) {
+            for (x = 0; x < 9; x++) {
+                int col = x * (options->interlines + 1);
+
+                if (line <= end) {
+                    /* this line belongs to rank 0 */
+                    printf("%7.4f", Matrix[line][col]);
+                } else {
+                    /* this line belongs to another rank and was received above */
+                    printf("%7.4f", Matrix[0][col]);
+                }
+            }
+
+            printf("\n");
+        }
+    }
+
+    fflush(stdout);
+}
+
 /* ************************************************************************ */
 /*  main                                                                    */
 /* ************************************************************************ */
@@ -476,7 +546,7 @@ int main(int argc, char **argv) {
     struct options options;
     struct calculation_arguments arguments;
     struct calculation_results results;
-    int rank, size;
+    int rank, size, start, end;
 
     // Initialize the MPI environment
     MPI_Init(&argc, &argv);
@@ -502,16 +572,19 @@ int main(int argc, char **argv) {
 
     if (options.method == METH_JACOBI && size > 1) {
         gettimeofday(&start_time, NULL);
-        calculate_MPI(&arguments, &results, &options, rank, size);
+        calculate_MPI(&arguments, &results, &options, rank, size, &start, &end);
         gettimeofday(&comp_time, NULL);
+
+        if (rank == 0) {
+            displayStatistics(&arguments, &results, &options);
+        }
+        displayMatrix_MPI(&arguments, &results, &options, rank, size, start, end);
 
     } else {
         gettimeofday(&start_time, NULL);
         calculate(&arguments, &results, &options);
         gettimeofday(&comp_time, NULL);
-    }
 
-    if (rank == 0) {
         displayStatistics(&arguments, &results, &options);
         displayMatrix(&arguments, &results, &options);
     }
