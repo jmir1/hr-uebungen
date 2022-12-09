@@ -314,7 +314,7 @@ static void calculate(struct calculation_arguments const *arguments,
 static void calculate_MPI(struct calculation_arguments const *arguments,
                           struct calculation_results *results,
                           struct options const *options, int rank, int size, int start,
-                          int end) {
+                          int end, MPI_Comm calc_comm) {
     int i, j;           /* local variables for loops */
     int m1, m2;         /* used as indices for old and new matrices */
     double star;        /* four times center value minus 4 neigh.b values */
@@ -432,7 +432,7 @@ static void calculate_MPI(struct calculation_arguments const *arguments,
             term_iteration--;
             if (term_iteration == 0) {
                 MPI_Allreduce(&maxResiduum, &all_maxResiduum, 1, MPI_DOUBLE, MPI_MAX,
-                              MPI_COMM_WORLD);
+                              calc_comm);
                 maxResiduum = all_maxResiduum;
             }
         }
@@ -605,6 +605,7 @@ int main(int argc, char **argv) {
     struct calculation_arguments arguments;
     struct calculation_results results;
     int rank, size, start, end;
+    MPI_Comm calc_comm;
 
     // Initialize the MPI environment
     MPI_Init(&argc, &argv);
@@ -642,15 +643,22 @@ int main(int argc, char **argv) {
         end = start + lines;
 
         if (start == end) {
+            MPI_Comm_split(MPI_COMM_WORLD, MPI_UNDEFINED, rank, &calc_comm);
+            MPI_Barrier(MPI_COMM_WORLD);
             return 0;
         }
+
+        MPI_Comm_split(MPI_COMM_WORLD, 0, rank, &calc_comm);
 
         allocateMatrices_MPI(&arguments, lines);
         initMatrices_MPI(&arguments, &options, size, rank, start, end);
 
         gettimeofday(&start_time, NULL);
-        calculate_MPI(&arguments, &results, &options, rank, size, start, end);
+        calculate_MPI(&arguments, &results, &options, rank, size, start, end,
+                      calc_comm);
         gettimeofday(&comp_time, NULL);
+
+        MPI_Comm_free(&calc_comm);
 
         if (rank == 0) {
             displayStatistics(&arguments, &results, &options);
@@ -670,6 +678,7 @@ int main(int argc, char **argv) {
     }
 
     freeMatrices(&arguments);
+    MPI_Barrier(MPI_COMM_WORLD);
 
     return 0;
 }
