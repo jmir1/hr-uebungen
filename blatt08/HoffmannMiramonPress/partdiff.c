@@ -125,7 +125,7 @@ static void allocateMatrices_MPI(struct calculation_arguments *arguments, int li
     uint64_t i, j;
 
     uint64_t const N = arguments->N;
-    uint64_t p_N = lines + 2;
+    uint64_t p_N = lines + 2; // The number of rows of the process
 
     arguments->M =
         allocateMemory(arguments->num_matrices * p_N * (N + 1) * sizeof(double));
@@ -186,7 +186,7 @@ static void initMatrices_MPI(struct calculation_arguments *arguments,
     double const h = arguments->h;
     double ***Matrix = arguments->Matrix;
 
-    uint64_t p_N = end - start + 1;
+    uint64_t p_N = end - start + 1; // The max index of rows of the process
 
     /* initialize matrix/matrices with zeros */
     for (g = 0; g < arguments->num_matrices; g++) {
@@ -377,6 +377,8 @@ static void calculate_MPI(struct calculation_arguments const *arguments,
 
         MPI_Status status;
         if (rank == 0) {
+            // The first process only sends its last row and and recieves the lower halo
+            // row.
             MPI_Request request_last_row;
             MPI_Issend(Matrix_Out[p_N - 1], (N + 1), MPI_DOUBLE, next, 0,
                        MPI_COMM_WORLD, &request_last_row);
@@ -387,6 +389,8 @@ static void calculate_MPI(struct calculation_arguments const *arguments,
             MPI_Wait(&request_last_row, &status);
 
         } else if (rank == size - 1 || end == N) {
+            // The last process only sends its first row and and recieves the upper halo
+            // row.
             MPI_Request request_first_row;
             MPI_Issend(Matrix_Out[1], (N + 1), MPI_DOUBLE, previous, 0, MPI_COMM_WORLD,
                        &request_first_row);
@@ -405,8 +409,10 @@ static void calculate_MPI(struct calculation_arguments const *arguments,
             MPI_Issend(Matrix_Out[p_N - 1], (N + 1), MPI_DOUBLE, next, 0,
                        MPI_COMM_WORLD, &request_last_row);
 
+            // Recieve upper halo row
             MPI_Recv(Matrix_Out[0], (N + 1), MPI_DOUBLE, previous, 0, MPI_COMM_WORLD,
                      &status);
+            // Recieve lower halo row
             MPI_Recv(Matrix_Out[p_N], (N + 1), MPI_DOUBLE, next, 0, MPI_COMM_WORLD,
                      &status);
 
@@ -422,8 +428,10 @@ static void calculate_MPI(struct calculation_arguments const *arguments,
         double all_maxResiduum;
         /* check for stopping calculation depending on termination method */
         if (options->termination == TERM_PREC) {
+            // Get the maxResiduum from all processes in calc_comm and send the largest
+            // maxResiduum back.
             MPI_Allreduce(&maxResiduum, &all_maxResiduum, 1, MPI_DOUBLE, MPI_MAX,
-                          MPI_COMM_WORLD);
+                          calc_comm);
             maxResiduum = all_maxResiduum;
             if (maxResiduum < options->term_precision) {
                 term_iteration = 0;
@@ -431,6 +439,8 @@ static void calculate_MPI(struct calculation_arguments const *arguments,
         } else if (options->termination == TERM_ITER) {
             term_iteration--;
             if (term_iteration == 0) {
+                // Get the maxResiduum from all processes in calc_comm and send the
+                // largest maxResiduum back.
                 MPI_Allreduce(&maxResiduum, &all_maxResiduum, 1, MPI_DOUBLE, MPI_MAX,
                               calc_comm);
                 maxResiduum = all_maxResiduum;
@@ -614,25 +624,30 @@ int main(int argc, char **argv) {
     // Get the number of processes
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
+    // If there are multiple processes for the calculation with Gauss-Seidel,
+    // all processes exept the first one returns.
     if (options.method == METH_GAUSS_SEIDEL && rank != 0) {
         return 0;
     }
 
+    // The first process gets the input and sends it to the other processes.
     if (rank == 0) {
         askParams(&options, argc, argv);
     }
-
     MPI_Bcast(&options, sizeof(options), MPI_CHAR, 0, MPI_COMM_WORLD);
 
     initVariables(&arguments, &results, &options);
 
     if (options.method == METH_JACOBI && size > 1) {
-        int N = arguments.N;
+        // MPI parallelized computation if the method is Jacobi and
+        // there are more than 1 process.
 
         int lines;
+        int N = arguments.N;
         int quotient = (N - 1) / size;
         int remainder = (N - 1) % size;
 
+        // Set the start and end indices for a process
         if (rank < remainder) {
             lines = quotient + 1;
             start = rank * lines + 1;
@@ -642,14 +657,18 @@ int main(int argc, char **argv) {
         }
         end = start + lines;
 
+        // Returns unused processes if there are more processes than rows in the matrix.
         if (start == end) {
             MPI_Comm_split(MPI_COMM_WORLD, MPI_UNDEFINED, rank, &calc_comm);
             MPI_Barrier(MPI_COMM_WORLD);
             return 0;
         }
 
+        // Create a communicator with all processes that are involved in the
+        // calculation.
         MPI_Comm_split(MPI_COMM_WORLD, 0, rank, &calc_comm);
 
+        // Allocate and initialize the chunk of the matrix assigned to the process.
         allocateMatrices_MPI(&arguments, lines);
         initMatrices_MPI(&arguments, &options, size, rank, start, end);
 
@@ -666,6 +685,9 @@ int main(int argc, char **argv) {
         displayMatrix_MPI(&arguments, &results, &options, rank, size, start, end);
 
     } else {
+        // Sequential computation if the mathod is Gauss-Seidel and/or
+        // there are less than 2 processes.
+
         allocateMatrices(&arguments);
         initMatrices(&arguments, &options);
 
