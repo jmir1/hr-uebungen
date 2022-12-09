@@ -121,8 +121,7 @@ static void allocateMatrices(struct calculation_arguments *arguments) {
 /* ************************************************************************ */
 /* allocateMatrices: allocates memory for matrices                          */
 /* ************************************************************************ */
-static void allocateMatrices_MPI(struct calculation_arguments *arguments, int lines,
-                                 int rank) {
+static void allocateMatrices_MPI(struct calculation_arguments *arguments, int lines) {
     uint64_t i, j;
 
     uint64_t const N = arguments->N;
@@ -180,7 +179,7 @@ static void initMatrices(struct calculation_arguments *arguments,
 /* ************************************************************************ */
 static void initMatrices_MPI(struct calculation_arguments *arguments,
                              struct options const *options, int size, int rank,
-                             int start, int end) {
+                             uint64_t start, uint64_t end) {
     uint64_t g, i, j; /* local variables for loops */
 
     uint64_t const N = arguments->N;
@@ -324,6 +323,7 @@ static void calculate_MPI(struct calculation_arguments const *arguments,
 
     int const N = arguments->N;
     double const h = arguments->h;
+    int p_N = end - start + 1;
 
     double pih = 0.0;
     double fpisin = 0.0;
@@ -346,7 +346,7 @@ static void calculate_MPI(struct calculation_arguments const *arguments,
         maxResiduum = 0;
 
         /* over all rows */
-        for (i = start; i < end; i++) {
+        for (i = 1; i < p_N; i++) {
             double fpisin_i = 0.0;
 
             if (options->inf_func == FUNC_FPISIN) {
@@ -378,36 +378,36 @@ static void calculate_MPI(struct calculation_arguments const *arguments,
         MPI_Status status;
         if (rank == 0) {
             MPI_Request request_last_row;
-            MPI_Issend(Matrix_Out[end - 1], (N + 1), MPI_DOUBLE, next, 0,
+            MPI_Issend(Matrix_Out[p_N - 1], (N + 1), MPI_DOUBLE, next, 0,
                        MPI_COMM_WORLD, &request_last_row);
 
-            MPI_Recv(Matrix_Out[end], (N + 1), MPI_DOUBLE, next, 0, MPI_COMM_WORLD,
+            MPI_Recv(Matrix_Out[p_N], (N + 1), MPI_DOUBLE, next, 0, MPI_COMM_WORLD,
                      &status);
 
             MPI_Wait(&request_last_row, &status);
 
         } else if (rank == size - 1 || end == N) {
             MPI_Request request_first_row;
-            MPI_Issend(Matrix_Out[start], (N + 1), MPI_DOUBLE, previous, 0,
-                       MPI_COMM_WORLD, &request_first_row);
+            MPI_Issend(Matrix_Out[1], (N + 1), MPI_DOUBLE, previous, 0, MPI_COMM_WORLD,
+                       &request_first_row);
 
-            MPI_Recv(Matrix_Out[start - 1], (N + 1), MPI_DOUBLE, previous, 0,
-                     MPI_COMM_WORLD, &status);
+            MPI_Recv(Matrix_Out[0], (N + 1), MPI_DOUBLE, previous, 0, MPI_COMM_WORLD,
+                     &status);
 
             MPI_Wait(&request_first_row, &status);
 
         } else {
             // Send first row
             MPI_Request request_first_row, request_last_row;
-            MPI_Issend(Matrix_Out[start], (N + 1), MPI_DOUBLE, previous, 0,
-                       MPI_COMM_WORLD, &request_first_row);
+            MPI_Issend(Matrix_Out[1], (N + 1), MPI_DOUBLE, previous, 0, MPI_COMM_WORLD,
+                       &request_first_row);
             // Send last row
-            MPI_Issend(Matrix_Out[end - 1], (N + 1), MPI_DOUBLE, next, 0,
+            MPI_Issend(Matrix_Out[p_N - 1], (N + 1), MPI_DOUBLE, next, 0,
                        MPI_COMM_WORLD, &request_last_row);
 
-            MPI_Recv(Matrix_Out[start - 1], (N + 1), MPI_DOUBLE, previous, 0,
-                     MPI_COMM_WORLD, &status);
-            MPI_Recv(Matrix_Out[end], (N + 1), MPI_DOUBLE, next, 0, MPI_COMM_WORLD,
+            MPI_Recv(Matrix_Out[0], (N + 1), MPI_DOUBLE, previous, 0, MPI_COMM_WORLD,
+                     &status);
+            MPI_Recv(Matrix_Out[p_N], (N + 1), MPI_DOUBLE, next, 0, MPI_COMM_WORLD,
                      &status);
 
             MPI_Wait(&request_first_row, &status);
@@ -645,15 +645,11 @@ int main(int argc, char **argv) {
             return 0;
         }
 
-        // printf("%d: %d lines, (%d - %d)\n", rank, lines, start, end);
-
-        allocateMatrices_MPI(&arguments, lines, rank);
+        allocateMatrices_MPI(&arguments, lines);
         initMatrices_MPI(&arguments, &options, size, rank, start, end);
 
-        // printf("%d: Matrices allocated.\n", rank);
-
         gettimeofday(&start_time, NULL);
-        // calculate_MPI(&arguments, &results, &options, rank, size, start, end);
+        calculate_MPI(&arguments, &results, &options, rank, size, start, end);
         gettimeofday(&comp_time, NULL);
 
         if (rank == 0) {
