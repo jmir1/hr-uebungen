@@ -624,12 +624,6 @@ int main(int argc, char **argv) {
     // Get the number of processes
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
-    // If there are multiple processes for the calculation with Gauss-Seidel,
-    // all processes exept the first one returns.
-    if (options.method == METH_GAUSS_SEIDEL && rank != 0) {
-        return 0;
-    }
-
     // The first process gets the input and sends it to the other processes.
     if (rank == 0) {
         askParams(&options, argc, argv);
@@ -637,6 +631,13 @@ int main(int argc, char **argv) {
     MPI_Bcast(&options, sizeof(options), MPI_CHAR, 0, MPI_COMM_WORLD);
 
     initVariables(&arguments, &results, &options);
+
+    // If there are multiple processes for the calculation with Gauss-Seidel,
+    // all processes exept the first one returns.
+    if (options.method == METH_GAUSS_SEIDEL && rank != 0) {
+        MPI_Barrier(MPI_COMM_WORLD);
+        return 0;
+    }
 
     if (options.method == METH_JACOBI && size > 1) {
         // MPI parallelized computation if the method is Jacobi and
