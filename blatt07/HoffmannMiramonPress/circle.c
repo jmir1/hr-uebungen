@@ -188,6 +188,7 @@ int main(int argc, char **argv) {
     }
 
     free(buf);
+    MPI_Finalize();
 
     return EXIT_SUCCESS;
 }

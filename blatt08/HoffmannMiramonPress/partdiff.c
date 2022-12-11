@@ -635,7 +635,7 @@ int main(int argc, char **argv) {
     // If there are multiple processes for the calculation with Gauss-Seidel,
     // all processes exept the first one returns.
     if (options.method == METH_GAUSS_SEIDEL && rank != 0) {
-        MPI_Barrier(MPI_COMM_WORLD);
+        MPI_Finalize();
         return 0;
     }
 
@@ -661,7 +661,7 @@ int main(int argc, char **argv) {
         // Returns unused processes if there are more processes than rows in the matrix.
         if (start == end) {
             MPI_Comm_split(MPI_COMM_WORLD, MPI_UNDEFINED, rank, &calc_comm);
-            MPI_Barrier(MPI_COMM_WORLD);
+            MPI_Finalize();
             return 0;
         }
 
@@ -701,7 +701,7 @@ int main(int argc, char **argv) {
     }
 
     freeMatrices(&arguments);
-    MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Finalize();
 
     return 0;
 }
