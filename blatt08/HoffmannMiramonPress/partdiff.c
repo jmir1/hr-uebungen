@@ -346,8 +346,9 @@ static void calculate_MPI(struct calculation_arguments const *arguments,
         maxResiduum = 0;
 
         /* over all rows */
-        for (i = 1; i < p_N; i++) {
+        for (i = start - 1; i < end; i++) {
             double fpisin_i = 0.0;
+            int x = i - (start - 1); // Matrix index for i
 
             if (options->inf_func == FUNC_FPISIN) {
                 fpisin_i = fpisin * sin(pih * (double)i);
@@ -355,20 +356,20 @@ static void calculate_MPI(struct calculation_arguments const *arguments,
 
             /* over all columns */
             for (j = 1; j < N; j++) {
-                star = 0.25 * (Matrix_In[i - 1][j] + Matrix_In[i][j - 1] +
-                               Matrix_In[i][j + 1] + Matrix_In[i + 1][j]);
+                star = 0.25 * (Matrix_In[x - 1][j] + Matrix_In[x][j - 1] +
+                               Matrix_In[x][j + 1] + Matrix_In[x + 1][j]);
 
                 if (options->inf_func == FUNC_FPISIN) {
                     star += fpisin_i * sin(pih * (double)j);
                 }
 
                 if (options->termination == TERM_PREC || term_iteration == 1) {
-                    residuum = Matrix_In[i][j] - star;
+                    residuum = Matrix_In[x][j] - star;
                     residuum = (residuum < 0) ? -residuum : residuum;
                     maxResiduum = (residuum < maxResiduum) ? maxResiduum : residuum;
                 }
 
-                Matrix_Out[i][j] = star;
+                Matrix_Out[x][j] = star;
             }
         }
 
