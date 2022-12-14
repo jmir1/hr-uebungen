@@ -346,7 +346,7 @@ static void calculate_MPI(struct calculation_arguments const *arguments,
         maxResiduum = 0;
 
         /* over all rows */
-        for (i = start - 1; i < end; i++) {
+        for (i = start; i < end; i++) {
             double fpisin_i = 0.0;
             int x = i - (start - 1); // Matrix index for i
 
