@@ -490,12 +490,10 @@ static void calculate_MPI(struct calculation_arguments const *arguments,
 
 
         MPI_Status status;
-		if (rank > 0 && rank < size - 1 && end != N) {
+		if (rank > 0) {
             // Recieve upper halo row
-			if (options->termination == TERM_ITER || term_iteration > 1) {
-				MPI_Recv(Matrix[0], (N + 1), MPI_DOUBLE, previous, 0, calc_comm,
-						&status);
-			}
+			MPI_Recv(Matrix[0], (N + 1), MPI_DOUBLE, previous, 0, calc_comm,
+                    &status);
 			
 		}
 
@@ -562,8 +560,6 @@ static void calculate_MPI(struct calculation_arguments const *arguments,
 				MPI_Issend(Matrix[1], (N + 1), MPI_DOUBLE, previous, 0, calc_comm,
 						&request_first_row);
 			}
-			MPI_Recv(Matrix[0], (N + 1), MPI_DOUBLE, previous, 0, calc_comm,
-					&status);
 			if (!terminate) {
 				MPI_Recv(&receivedMaxResiduum, 1, MPI_DOUBLE, previous, 0, calc_comm,
 				&status);
